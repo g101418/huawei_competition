@@ -1,7 +1,7 @@
-import itertools
 from pandarallel import pandarallel
 import geohash
-from utils import haversine, get_port
+import itertools
+from utils import haversine, portsUtils
 
 import pandas as pd
 import numpy as np
@@ -48,17 +48,17 @@ def find_all_ports_from_order(df):
         last_in_port_state = cur_in_port_state
 
         if speed < 3:
-            port = get_port(cur_lon, cur_lat, port_dict=ports_points_dict,
-                            distance_threshold=25)[0]
+            port = portsUtils.get_port(
+                cur_lon, cur_lat, distance_threshold=25)[0]
             if port is not None:
                 cur_in_port_state = True
                 if len(ports) == 0:
-                    ports.append((port, (i, -1)))
+                    ports.append([port, [i, -1]])
                 elif ports[-1][0] == port:  # 还在该港口内
                     last_port_end_index = i
                 else:  # 别的港口
                     ports[-1][1][1] = last_port_end_index
-                    ports.append((port, (i, -1)))
+                    ports.append([port, [i, -1]])
             else:
                 cur_in_port_state = False
         else:
@@ -67,18 +67,24 @@ def find_all_ports_from_order(df):
         if last_in_port_state == True and cur_in_port_state == False:
             final_port_end_index = i
 
-    if ports[-1][1][1] == -1:
-        ports[-1][1][1] = final_port_end_index
-
+    if len(ports) != 0 and ports[-1][1][1] == -1:
+        if cur_in_port_state == True and final_port_end_index < ports[-1][1][0]:
+            ports[-1][1][1] = i
+        else:
+            ports[-1][1][1] = final_port_end_index if final_port_end_index != -1 else i
+        
+    # 不考虑最后刚刚到港情况
+    
     return ports
 
 
 if __name__ == '__main__':
-    TRAIN_GPS_PATH = './data/train_drift.csv'
+    TRAIN_GPS_PATH = './data/_train_drift.csv'
 
-    train_data = pd.read_csv(TRAIN_GPS_PATH, header=None)
+    train_data = pd.read_csv(TRAIN_GPS_PATH)
 
-    train_data.columns = ['loadingOrder', 'carrierName', 'timestamp', 'longitude',
-                          'latitude', 'vesselMMSI', 'speed', 'direction', 'vesselNextport',
-                          'vesselNextportETA', 'vesselStatus', 'vesselDatasource', 'TRANSPORT_TRACE']
+    pandarallel.initialize(progress_bar=True)
 
+    orders_ports = train_data[:].groupby('loadingOrder')[
+        'timestamp', 'longitude', 'latitude'].parallel_apply(find_all_ports_from_order)
+    

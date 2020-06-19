@@ -37,7 +37,6 @@ class PortsUtils(object):
         else:
             self.all_port_points = all_port_points
 
-
     def get_port(self, lon, lat, distance_threshold=10.0):
         """
         根据经纬度得到最匹配的港口名称及坐标、距离。返回值的名称前后无空格
@@ -57,7 +56,8 @@ class PortsUtils(object):
         if min_distance_point == '':
             return None, [0.0, 0.0], -1.0
         else:
-            min_distance_point =  self.get_mapped_port_name(min_distance_point)[0]
+            min_distance_point = self.get_mapped_port_name(min_distance_point)[
+                0]
             return min_distance_point, self.all_port_points[min_distance_point], min_distance
 
     def get_mapped_port_name(self, port_name):
@@ -81,11 +81,40 @@ class PortsUtils(object):
         else:
             return None, [0.0, 0.0]
 
+    def merge_port(self, port_name_1, port_name_2):
+        """
+        将port_2港口合并进入port_1
+        """
+        self.port_map_dict[port_name_2] = (
+            port_name_1, self.get_mapped_port_name(port_name_2)[1])
+        del self.all_port_points[port_name_2]
 
+        with open(self.__port_map_dict_filename, 'w') as f:
+            f.write(str(self.port_map_dict))
+        with open(self.__all_port_points_filename, 'w') as f:
+            f.write(str(self.all_port_points))
+
+    def modify_port_coordinates(self, port_name, lon, lat):
+        """
+        修改港口坐标位置
+        """
+        self.all_port_points[port_name] = [lon, lat]
+        with open(self.__all_port_points_filename, 'w') as f:
+            f.write(str(self.all_port_points))
+        return
+
+    def modify_port_name(self, port_name_1, port_name_2):
+        """
+        修改港口名称
+        """
+        # TODO
+        return
+
+
+portsUtils = PortsUtils()
 
 if __name__ == '__main__':
-    portsUtils = PortsUtils()
     print("该两点间距离={0:0.3f} km".format(
         haversine(-82.754642, 22.995645, -83.935017, 22.922867)))
-    a,b,c = portsUtils.get_port(83.975602, 28.20403)
-    print(a,b,c)
+    a, b, c = portsUtils.get_port(83.975602, 28.20403)
+    print(a, b, c)
