@@ -1,9 +1,8 @@
 '''
 @Author: Gao S
 @Date: 2020-06-19 19:08:19
-@LastEditTime: 2020-06-20 13:27:28
-@LastEditors: Please set LastEditors
-@Description: In User Settings Edit
+@LastEditTime: 2020-06-20 15:02:18
+@Description: 找到航线经过的所有港口
 @FilePath: /HUAWEI_competition/fine_all_ports_on_trace.py
 '''
 from pandarallel import pandarallel
@@ -150,7 +149,7 @@ class FindPorts(object):
                 port0, index0 = self.start_end_ports_dict[key][0]
                 port1, index1 = self.start_end_ports_dict[key][1]
 
-                if index1[1] == -2:
+                if index0[1] == -2:
                     self.orders_ports_dict[key].insert(
                         0, self.start_end_ports_dict[key][0])
                     self.orders_ports_dict[key].append(
@@ -160,6 +159,7 @@ class FindPorts(object):
                         0, self.start_end_ports_dict[key][1])
                     self.orders_ports_dict[key].append(
                         self.start_end_ports_dict[key][0])
+        
 
     def find_ports(self, train_data=None, ordername=None):
         if train_data is None:

@@ -34,7 +34,6 @@ class PortsUtils(object):
     Args:
 
     """
-
     def __init__(self,
                  port_map_dict_filename='./data/port_map_dict.txt',
                  all_port_points_filename='./data/all_port_points.txt',
