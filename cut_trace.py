@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-20 16:01:17
+@LastEditTime: 2020-06-20 18:31:18
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -96,6 +96,10 @@ class CutTrace(object):
             return use_indexs_
         else:
             return use_indexs
+        
+    def get_use_indexs_len(self, start_port, end_port):
+        result =  self.get_use_indexs(start_port, end_port, line=False)
+        return len(result)
     
 cutTrace = CutTrace()
 
