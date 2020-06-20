@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-20 23:25:14
+@LastEditTime: 2020-06-20 23:29:10
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -265,3 +265,5 @@ if __name__ == "__main__":
     
     with open('final_order_label.txt','w')as f:
         f.write(str(final_order_label))
+        
+    # TODO: 应该将结果映射为字典
