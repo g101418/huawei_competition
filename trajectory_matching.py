@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-21 00:19:55
+@LastEditTime: 2020-06-21 01:25:19
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -24,11 +24,12 @@ class TrajectoryMatching(object):
 
     """
 
-    def __init__(self, train_data):
+    def __init__(self, train_data, geohash_precision=4):
         super().__init__()
         self.train_data = train_data
         self.__cutTrace = CutTrace()
         self.match_traj_dict = {}
+        self.geohash_precision = geohash_precision
 
     def __get_traj_order_label(self, start_port, end_port):
         """按照起止港得到相关训练集
@@ -93,7 +94,7 @@ class TrajectoryMatching(object):
         lat = df['latitude'].tolist()
         traj_list = list(map(list, zip(lon, lat)))
 
-        traj_list = list(map(lambda x: geohash.encode(x[1], x[0], precision=4), traj_list))
+        traj_list = list(map(lambda x: geohash.encode(x[1], x[0], precision=self.geohash_precision), traj_list))
         traj_list = [k for k, g in itertools.groupby(traj_list)]
         traj_list = list(map(lambda x: [geohash.decode(x)[1], geohash.decode(x)[0]], traj_list))
         
@@ -264,12 +265,12 @@ if __name__ == "__main__":
         {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
 
     final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(lambda x: trajectoryMatching.parallel_get_label(x))
-    with open('final_order_label__.txt','w')as f:
-        f.write(str(final_order_label))
-    
     final_order_label = final_order_label.tolist()
     
-    with open('final_order_label.txt','w')as f:
-        f.write(str(final_order_label))
+    final_order_label_dict = {}
+    for i in range(len(final_order_label)):
+        final_order_label_dict[final_order_label[i][0]] = final_order_label[i][2]
         
-    # TODO: 应该将结果映射为字典
+    with open('final_order_label_dict.txt','w')as f:
+        f.write(str(final_order_label_dict))
+        

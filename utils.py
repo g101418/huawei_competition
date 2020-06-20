@@ -182,20 +182,21 @@ class DrawMap(object):
                 str(ordername)+'", path:'+str(trace_list)+'},'
             f.write(self.__tracemap1_txt +
                     ''.join(show_list)+self.__tracemap2_txt)
+    # TODO 绘图相关
 
-    def draw_two_trace_map(self):
-        pass
+    # def draw_two_trace_map(self):
+    #     pass
 
-    def __draw_two_trace_map_coor(self, ordername, coordinates1, coordinates2):
+    # def __draw_two_trace_map_coor(self, ordername, coordinates1, coordinates2):
 
-        row1 = '{name: "路线'+str(1)+'", path:'+str(coordinates1)+'},'
-        row2 = '{name: "路线'+str(1)+'", path:'+str(coordinates2)+'},'
+    #     row1 = '{name: "路线'+str(1)+'", path:'+str(coordinates1)+'},'
+    #     row2 = '{name: "路线'+str(1)+'", path:'+str(coordinates2)+'},'
 
-        show_list = [row1, row2]
+    #     show_list = [row1, row2]
 
-        with open(self.__tracemap_path + 'tracemap_two_'+ordername+'.html', 'w') as f:
-            f.write(self.__tracemap1_txt +
-                    ''.join(show_list) + self.__tracemap2_txt)
+    #     with open(self.__tracemap_path + 'tracemap_two_'+ordername+'.html', 'w') as f:
+    #         f.write(self.__tracemap1_txt +
+    #                 ''.join(show_list) + self.__tracemap2_txt)
 
 
 portsUtils = PortsUtils()

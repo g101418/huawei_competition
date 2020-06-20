@@ -1,9 +1,9 @@
 '''
 @Author: Gao S
 @Date: 2020-06-19 19:08:19
-@LastEditTime: 2020-06-20 15:02:18
+@LastEditTime: 2020-06-21 01:11:40
 @Description: 找到航线经过的所有港口
-@FilePath: /HUAWEI_competition/fine_all_ports_on_trace.py
+@FilePath: /HUAWEI_competition/find_all_ports_on_trace.py
 '''
 from pandarallel import pandarallel
 import geohash
@@ -189,5 +189,5 @@ if __name__ == '__main__':
     # progress_bar=True
     pandarallel.initialize()
 
-    # find_ports = FindPorts()
-    # orders_ports_dict = find_ports.find_ports(train_data, 'AA191175561416')
+    find_ports = FindPorts()
+    orders_ports_dict = find_ports.find_ports(train_data, 'AA191175561416')
