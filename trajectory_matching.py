@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-20 22:30:17
+@LastEditTime: 2020-06-20 23:25:14
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -13,7 +13,6 @@ import pandas as pd
 import traj_dist.distance as tdist
 
 from pandarallel import pandarallel
-pandarallel.initialize(progress_bar=True)
 
 
 class TrajectoryMatching(object):
@@ -209,3 +208,60 @@ class TrajectoryMatching(object):
         min_traj_index = cdist.index(min(cdist))
 
         return train_order_list[min_traj_index], train_label_list[min_traj_index]
+
+    def parallel_get_label(self, df):
+        """用于并行化处理，得到order及label
+
+        Args:
+            df (pd.DataFrame): test集中相关数据构造的数据集的某一行
+
+        Returns:
+            [result_order, result_label] ([str, ]): 返回order及对应的label列表
+        """
+        order = df.loc[df.index[0], 'loadingOrder']
+        trace = df.loc[df.index[0], 'trace']
+        traj = df.loc[df.index[0], 'traj']
+
+        result_order, result_label = self.get_final_label(order, trace, traj)
+        return [result_order, result_label]
+
+
+if __name__ == "__main__":
+    TRAIN_GPS_PATH = './data/_train_drift.csv'
+    train_data = pd.read_csv(TRAIN_GPS_PATH)
+
+    TEST_GPS_PATH = './data/A_testData0531.csv'
+    test_data = pd.read_csv(TEST_GPS_PATH)
+
+    pandarallel.initialize()
+
+    trajectoryMatching = TrajectoryMatching(train_data)
+
+    order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(
+        test_data)
+
+    # 找到可以匹配到的order
+    matched_index_list = []
+    for i in range(len(order_list)):
+        length = trajectoryMatching.get_related_traj_len(
+            trace_list[i][0], trace_list[i][1])
+        if length != 0:
+            matched_index_list.append(i)
+
+    matched_order_list, matched_trace_list, matched_traj_list = [], [], []
+    for i in matched_index_list:
+        matched_order_list.append(order_list[i])
+        matched_trace_list.append(trace_list[i])
+        matched_traj_list.append(traj_list[i])
+    
+    matched_test_data = pd.DataFrame(
+        {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
+
+    final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(lambda x: trajectoryMatching.parallel_get_label(x))
+    with open('final_order_label__.txt','w')as f:
+        f.write(str(final_order_label))
+    
+    final_order_label = final_order_label.tolist()
+    
+    with open('final_order_label.txt','w')as f:
+        f.write(str(final_order_label))
