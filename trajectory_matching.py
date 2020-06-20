@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-20 23:29:10
+@LastEditTime: 2020-06-21 00:19:55
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -11,6 +11,8 @@ from utils import portsUtils
 import numpy as np
 import pandas as pd
 import traj_dist.distance as tdist
+import geohash
+import itertools
 
 from pandarallel import pandarallel
 
@@ -91,6 +93,10 @@ class TrajectoryMatching(object):
         lat = df['latitude'].tolist()
         traj_list = list(map(list, zip(lon, lat)))
 
+        traj_list = list(map(lambda x: geohash.encode(x[1], x[0], precision=4), traj_list))
+        traj_list = [k for k, g in itertools.groupby(traj_list)]
+        traj_list = list(map(lambda x: [geohash.decode(x)[1], geohash.decode(x)[0]], traj_list))
+        
         return traj_list
 
     def __get_traj_list_label(self, df):
@@ -223,7 +229,7 @@ class TrajectoryMatching(object):
         traj = df.loc[df.index[0], 'traj']
 
         result_order, result_label = self.get_final_label(order, trace, traj)
-        return [result_order, result_label]
+        return [order, result_order, result_label]
 
 
 if __name__ == "__main__":
