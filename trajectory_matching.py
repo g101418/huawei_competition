@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-21 01:25:19
+@LastEditTime: 2020-06-21 08:58:47
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -211,7 +211,7 @@ class TrajectoryMatching(object):
         if train_label_list is None:
             return None, None
 
-        cdist = list(tdist.cdist([traj], train_traj_list, metric="sspd")[0])
+        cdist = list(tdist.cdist([traj], train_traj_list, metric="lcss")[0])
         min_traj_index = cdist.index(min(cdist))
 
         return train_order_list[min_traj_index], train_label_list[min_traj_index]
@@ -246,6 +246,7 @@ if __name__ == "__main__":
 
     order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(
         test_data)
+    # ! 此处得到的trace未做map映射，映射发生在__get_traj_order_label()函数处
 
     # 找到可以匹配到的order
     matched_index_list = []
@@ -267,9 +268,14 @@ if __name__ == "__main__":
     final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(lambda x: trajectoryMatching.parallel_get_label(x))
     final_order_label = final_order_label.tolist()
     
+    with open('./final_order_label_0621.txt', 'w')as f:
+        f.write(str(final_order_label))
+        
+        
     final_order_label_dict = {}
     for i in range(len(final_order_label)):
         final_order_label_dict[final_order_label[i][0]] = final_order_label[i][2]
+        
         
     with open('final_order_label_dict.txt','w')as f:
         f.write(str(final_order_label_dict))
