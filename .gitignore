@@ -142,3 +142,4 @@ tracemap/
 results/
 
 *.ipynb
+*.csv
