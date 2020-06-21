@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-21 12:47:13
+@LastEditTime: 2020-06-21 15:24:09
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -24,7 +24,7 @@ class TrajectoryMatching(object):
 
     """
 
-    def __init__(self, train_data, geohash_precision=4, cutting_proportion=-1, metric="dtw"):
+    def __init__(self, train_data, geohash_precision=4, cutting_proportion=-1, metric="sspd"):
         super().__init__()
         self.train_data = train_data
         self.__cutTrace = CutTrace()
@@ -164,8 +164,8 @@ class TrajectoryMatching(object):
         trace = trace.replace(' ', '')
         trace = trace.split('-')
 
-        trace[0] = self.portsUtils.get_mapped_port_name(trace[0])[0]
-        trace[1] = self.portsUtils.get_mapped_port_name(trace[1])[0]
+        trace[0] = portsUtils.get_mapped_port_name(trace[0])[0]
+        trace[1] = portsUtils.get_mapped_port_name(trace[1])[0]
 
         return trace
 
@@ -299,53 +299,53 @@ class TrajectoryMatching(object):
                 return match_df
 
 
-# if __name__ == "__main__":
-#     TRAIN_GPS_PATH = './data/_train_drift.csv'
-#     train_data = pd.read_csv(TRAIN_GPS_PATH)
+if __name__ == "__main__":
+    TRAIN_GPS_PATH = './data/_train_drift.csv'
+    train_data = pd.read_csv(TRAIN_GPS_PATH)
 
-#     TEST_GPS_PATH = './data/A_testData0531.csv'
-#     test_data = pd.read_csv(TEST_GPS_PATH)
+    TEST_GPS_PATH = './data/A_testData0531.csv'
+    test_data = pd.read_csv(TEST_GPS_PATH)
 
-#     pandarallel.initialize()
+    pandarallel.initialize()
 
-#     trajectoryMatching = TrajectoryMatching(
-#         train_data, geohash_precision=5, cutting_proportion=0.5, metric='dtw')
+    trajectoryMatching = TrajectoryMatching(
+        train_data, geohash_precision=5, cutting_proportion=0.5, metric='sspd')
 
-#     order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(
-#         test_data)
-#     # ! 此处得到的trace做了map映射
+    order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(
+        test_data)
+    # ! 此处得到的trace做了map映射
 
-#     # 找到可以匹配到的order
-#     matched_index_list = []
-#     for i in range(len(order_list)):
-#         length = trajectoryMatching.get_related_traj_len(
-#             trace_list[i][0], trace_list[i][1])
-#         if length != 0:
-#             matched_index_list.append(i)
+    # 找到可以匹配到的order
+    matched_index_list = []
+    for i in range(len(order_list)):
+        length = trajectoryMatching.get_related_traj_len(
+            trace_list[i][0], trace_list[i][1])
+        if length != 0:
+            matched_index_list.append(i)
 
-#     matched_order_list, matched_trace_list, matched_traj_list = [], [], []
-#     for i in matched_index_list:
-#         matched_order_list.append(order_list[i])
-#         matched_trace_list.append(trace_list[i])
-#         matched_traj_list.append(traj_list[i])
+    matched_order_list, matched_trace_list, matched_traj_list = [], [], []
+    for i in matched_index_list:
+        matched_order_list.append(order_list[i])
+        matched_trace_list.append(trace_list[i])
+        matched_traj_list.append(traj_list[i])
 
-#     matched_test_data = pd.DataFrame(
-#         {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
+    matched_test_data = pd.DataFrame(
+        {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
 
-#     final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
-#         lambda x: trajectoryMatching.parallel_get_label(x))
-#     final_order_label = final_order_label.tolist()
+    final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
+        lambda x: trajectoryMatching.parallel_get_label(x))
+    final_order_label = final_order_label.tolist()
 
-#     with open('./final_order_label_0621.txt', 'w')as f:
-#         f.write(str(final_order_label))
+    with open('./final_order_label_0621.txt', 'w')as f:
+        f.write(str(final_order_label))
 
-#     final_order_label_dict = {}
-#     for i in range(len(final_order_label)):
-#         final_order_label_dict[final_order_label[i]
-#                                [0]] = final_order_label[i][2]
+    final_order_label_dict = {}
+    for i in range(len(final_order_label)):
+        final_order_label_dict[final_order_label[i]
+                               [0]] = final_order_label[i][2]
 
-#     with open('final_order_label_dict.txt', 'w')as f:
-#         f.write(str(final_order_label_dict))
+    with open('final_order_label_dict.txt', 'w')as f:
+        f.write(str(final_order_label_dict))
 
 
 # if __name__ == "__main__":
