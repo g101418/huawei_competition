@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-21 12:47:00
+@LastEditTime: 2020-06-21 20:58:45
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -41,7 +41,7 @@ class CutTrace(object):
         Args:
             start_port (str): 起始港，映射后名称
             end_port (str): 终点港，映射后名称
-            line (Bool): 是否直接返回平铺的全部索引值，如果False，则会返回对应的订单及子下标
+            line (Bool): 是否直接返回平铺的全部索引值，如果False，则会返回对应的订单及子下标: [[xx, xx], [xx, xx], ...]
         """
 
         # TODO list为空
@@ -88,7 +88,6 @@ class CutTrace(object):
             else:
                 continue
             
-        # TODO 解返回值，现在：[[xx, xx], [xx, xx], ...]
         if line == True:
             use_indexs_ = []
             for row in use_indexs:
