@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-21 15:24:09
+@LastEditTime: 2020-06-21 17:43:22
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -64,7 +64,7 @@ class TrajectoryMatching(object):
         return order_list, label_list, traj_list
 
     # TODO 函数：返回相关训练集，并重新排序，写入字典
-    def __get_match_df(self, start_port, end_port, reset_index=True):
+    def __get_match_df(self, start_port, end_port, reset_index=True, for_df=False):
         """得到与trace相关的训练集，训练集可选是否排序
 
         Args:
@@ -79,11 +79,12 @@ class TrajectoryMatching(object):
         start_port = portsUtils.get_mapped_port_name(start_port)[0]
         end_port = portsUtils.get_mapped_port_name(end_port)[0]
 
-        if self.cutting_proportion > 0:
-            result = self.__cutTrace.get_use_indexs(start_port, end_port, line=False)
+        if for_df == True and self.cutting_proportion > 0:
+            result = self.__cutTrace.get_use_indexs(
+                start_port, end_port, line=False)
             result_ = []
             for row in result:
-                result_ += list(range(row[0], int((row[1]+1)*self.cutting_proportion)))
+                result_ += list(range(row[1], int((row[2]+1-row[1]) * self.cutting_proportion)+row[1]))
             result = result_
         else:
             result = self.__cutTrace.get_use_indexs(start_port, end_port)
@@ -95,7 +96,7 @@ class TrajectoryMatching(object):
         match_df = self.train_data.loc[result]
         if reset_index == True:
             match_df = match_df.reset_index(drop=True)
-            
+
         return match_df
 
     def __get_label(self, df):
@@ -290,7 +291,7 @@ class TrajectoryMatching(object):
             return self.match_df_dict[trace_str]
         else:
             match_df = self.__get_match_df(
-                start_port, end_port, reset_index=True)
+                start_port, end_port, reset_index=True, for_df=True)
 
             if match_df is not None:
                 self.match_df_dict[trace_str] = match_df
@@ -341,8 +342,7 @@ if __name__ == "__main__":
 
     final_order_label_dict = {}
     for i in range(len(final_order_label)):
-        final_order_label_dict[final_order_label[i]
-                               [0]] = final_order_label[i][2]
+        final_order_label_dict[final_order_label[i][0]] = final_order_label[i][2]
 
     with open('final_order_label_dict.txt', 'w')as f:
         f.write(str(final_order_label_dict))
