@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-21 12:35:19
+@LastEditTime: 2020-06-21 12:47:13
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -348,35 +348,35 @@ class TrajectoryMatching(object):
 #         f.write(str(final_order_label_dict))
 
 
-if __name__ == "__main__":
-    TRAIN_GPS_PATH = './data/_train_drift.csv'
-    train_data = pd.read_csv(TRAIN_GPS_PATH)
+# if __name__ == "__main__":
+#     TRAIN_GPS_PATH = './data/_train_drift.csv'
+#     train_data = pd.read_csv(TRAIN_GPS_PATH)
 
-    TEST_GPS_PATH = './data/A_testData0531.csv'
-    test_data = pd.read_csv(TEST_GPS_PATH)
+#     TEST_GPS_PATH = './data/A_testData0531.csv'
+#     test_data = pd.read_csv(TEST_GPS_PATH)
 
-    pandarallel.initialize()
+#     pandarallel.initialize()
 
-    # !此处cutting_proportion为切割比例，0.5意为前50%
-    trajectoryMatching = TrajectoryMatching(
-        train_data, geohash_precision=5, cutting_proportion=0.5, metric='dtw')
+#     # !此处cutting_proportion为切割比例，0.5意为前50%
+#     trajectoryMatching = TrajectoryMatching(
+#         train_data, geohash_precision=5, cutting_proportion=0.5, metric='dtw')
 
-    order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(
-        test_data)
-    # ! 此处得到的trace做了map映射
+#     order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(
+#         test_data)
+#     # ! 此处得到的trace做了map映射
 
-    # 找到可以匹配到的order
-    matched_index_list = []
-    for i in range(len(order_list)):
-        length = trajectoryMatching.get_related_traj_len(
-            trace_list[i][0], trace_list[i][1])
-        if length != 0:
-            matched_index_list.append(i)
+#     # 找到可以匹配到的order
+#     matched_index_list = []
+#     for i in range(len(order_list)):
+#         length = trajectoryMatching.get_related_traj_len(
+#             trace_list[i][0], trace_list[i][1])
+#         if length != 0:
+#             matched_index_list.append(i)
 
-    matched_df_list = []
-    for i in matched_index_list:
-        match_df = trajectoryMatching.get_related_df(
-            trace_list[i][0], trace_list[i][1])
-        matched_df_list.append(match_df)
+#     matched_df_list = []
+#     for i in matched_index_list:
+#         match_df = trajectoryMatching.get_related_df(
+#             trace_list[i][0], trace_list[i][1])
+#         matched_df_list.append(match_df)
 
-    # ! 此处得到了matched_df_list，每一行即对应的训练集
+#     # ! 此处得到了matched_df_list，每一行即对应的训练集

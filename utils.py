@@ -1,7 +1,7 @@
 # 计算地图上两点经纬度间的距离
 from math import radians, cos, sin, asin, sqrt
 # Haversine(lon1, lat1, lon2, lat2)的参数代表：经度1，纬度1，经度2，纬度2（十进制度数）
-
+from config import config
 
 def haversine(lon1, lat1, lon2, lat2):
     """计算两个经纬度坐标之间的距离
@@ -35,8 +35,8 @@ class PortsUtils(object):
 
     """
     def __init__(self,
-                 port_map_dict_filename='./data/port_map_dict.txt',
-                 all_port_points_filename='./data/all_port_points.txt',
+                 port_map_dict_filename=config.port_map_dict_filename,
+                 all_port_points_filename=config.all_port_points_filename,
                  port_map_dict=None,
                  all_port_points=None):
         super().__init__()
