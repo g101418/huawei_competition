@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-21 12:19:49
+@LastEditTime: 2020-06-21 12:35:19
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -79,7 +79,14 @@ class TrajectoryMatching(object):
         start_port = portsUtils.get_mapped_port_name(start_port)[0]
         end_port = portsUtils.get_mapped_port_name(end_port)[0]
 
-        result = self.__cutTrace.get_use_indexs(start_port, end_port)
+        if self.cutting_proportion > 0:
+            result = self.__cutTrace.get_use_indexs(start_port, end_port, line=False)
+            result_ = []
+            for row in result:
+                result_ += list(range(row[0], int((row[1]+1)*self.cutting_proportion)))
+            result = result_
+        else:
+            result = self.__cutTrace.get_use_indexs(start_port, end_port)
 
         if len(result) == 0:
             return None
@@ -88,7 +95,7 @@ class TrajectoryMatching(object):
         match_df = self.train_data.loc[result]
         if reset_index == True:
             match_df = match_df.reset_index(drop=True)
-
+            
         return match_df
 
     def __get_label(self, df):
@@ -292,6 +299,55 @@ class TrajectoryMatching(object):
                 return match_df
 
 
+# if __name__ == "__main__":
+#     TRAIN_GPS_PATH = './data/_train_drift.csv'
+#     train_data = pd.read_csv(TRAIN_GPS_PATH)
+
+#     TEST_GPS_PATH = './data/A_testData0531.csv'
+#     test_data = pd.read_csv(TEST_GPS_PATH)
+
+#     pandarallel.initialize()
+
+#     trajectoryMatching = TrajectoryMatching(
+#         train_data, geohash_precision=5, cutting_proportion=0.5, metric='dtw')
+
+#     order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(
+#         test_data)
+#     # ! 此处得到的trace做了map映射
+
+#     # 找到可以匹配到的order
+#     matched_index_list = []
+#     for i in range(len(order_list)):
+#         length = trajectoryMatching.get_related_traj_len(
+#             trace_list[i][0], trace_list[i][1])
+#         if length != 0:
+#             matched_index_list.append(i)
+
+#     matched_order_list, matched_trace_list, matched_traj_list = [], [], []
+#     for i in matched_index_list:
+#         matched_order_list.append(order_list[i])
+#         matched_trace_list.append(trace_list[i])
+#         matched_traj_list.append(traj_list[i])
+
+#     matched_test_data = pd.DataFrame(
+#         {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
+
+#     final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
+#         lambda x: trajectoryMatching.parallel_get_label(x))
+#     final_order_label = final_order_label.tolist()
+
+#     with open('./final_order_label_0621.txt', 'w')as f:
+#         f.write(str(final_order_label))
+
+#     final_order_label_dict = {}
+#     for i in range(len(final_order_label)):
+#         final_order_label_dict[final_order_label[i]
+#                                [0]] = final_order_label[i][2]
+
+#     with open('final_order_label_dict.txt', 'w')as f:
+#         f.write(str(final_order_label_dict))
+
+
 if __name__ == "__main__":
     TRAIN_GPS_PATH = './data/_train_drift.csv'
     train_data = pd.read_csv(TRAIN_GPS_PATH)
@@ -301,6 +357,7 @@ if __name__ == "__main__":
 
     pandarallel.initialize()
 
+    # !此处cutting_proportion为切割比例，0.5意为前50%
     trajectoryMatching = TrajectoryMatching(
         train_data, geohash_precision=5, cutting_proportion=0.5, metric='dtw')
 
@@ -316,26 +373,10 @@ if __name__ == "__main__":
         if length != 0:
             matched_index_list.append(i)
 
-    matched_order_list, matched_trace_list, matched_traj_list = [], [], []
+    matched_df_list = []
     for i in matched_index_list:
-        matched_order_list.append(order_list[i])
-        matched_trace_list.append(trace_list[i])
-        matched_traj_list.append(traj_list[i])
+        match_df = trajectoryMatching.get_related_df(
+            trace_list[i][0], trace_list[i][1])
+        matched_df_list.append(match_df)
 
-    matched_test_data = pd.DataFrame(
-        {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
-
-    final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
-        lambda x: trajectoryMatching.parallel_get_label(x))
-    final_order_label = final_order_label.tolist()
-
-    with open('./final_order_label_0621.txt', 'w')as f:
-        f.write(str(final_order_label))
-
-    final_order_label_dict = {}
-    for i in range(len(final_order_label)):
-        final_order_label_dict[final_order_label[i]
-                               [0]] = final_order_label[i][2]
-
-    with open('final_order_label_dict.txt', 'w')as f:
-        f.write(str(final_order_label_dict))
+    # ! 此处得到了matched_df_list，每一行即对应的训练集
