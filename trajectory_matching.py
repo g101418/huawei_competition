@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-21 17:43:22
+@LastEditTime: 2020-06-21 21:36:36
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -312,11 +312,12 @@ if __name__ == "__main__":
     trajectoryMatching = TrajectoryMatching(
         train_data, geohash_precision=5, cutting_proportion=0.5, metric='sspd')
 
+    # 该函数返回test_data集中相关的所有：订单、trace、航线(是test本身的航线)
     order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(
         test_data)
     # ! 此处得到的trace做了map映射
 
-    # 找到可以匹配到的order
+    # 找到可以匹配到的order，该列表用于记录匹配到的下标，没有包含在内的下标是一条train中航线都匹配不到的
     matched_index_list = []
     for i in range(len(order_list)):
         length = trajectoryMatching.get_related_traj_len(
