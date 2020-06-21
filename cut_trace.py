@@ -1,12 +1,12 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-20 18:31:18
+@LastEditTime: 2020-06-21 12:47:00
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
 from utils import portsUtils
-
+from config import config
 
 class CutTrace(object):
     """用于切割轨迹
@@ -16,11 +16,11 @@ class CutTrace(object):
     """
 
     def __init__(self,
-                 orders_ports_dict_filename='./data/orders_ports_dict.txt',
+                 orders_ports_dict_filename=config.orders_ports_dict_filename,
                  orders_ports_dict=None):
         super().__init__()
         if orders_ports_dict is None:
-            with open('./data/orders_ports_dict.txt', 'r') as f:
+            with open(orders_ports_dict_filename, 'r') as f:
                 self.orders_ports_dict = eval(f.read())
         else:
             self.orders_ports_dict = orders_ports_dict

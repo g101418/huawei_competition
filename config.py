@@ -1,7 +1,13 @@
+'''
+@Author: Gao S
+@Date: 2020-06-16 14:59:17
+@LastEditTime: 2020-06-21 12:51:08
+@Description: 
+@FilePath: /HUAWEI_competition/config.py
+'''
 class Config:
     def __init__(self):
         super().__init__()
-
         self.data_path = './data/'
         self.train_gps_path = './data/train0523.csv'
         self.test_gps_path = './data/A_testData0531.csv'
@@ -12,6 +18,9 @@ class Config:
             'vesselMMSI', 'speed', 'direction', 'vesselNextport', 'vesselNextportETA',
             'vesselStatus', 'vesselDatasource', 'TRANSPORT_TRACE'
         ]
+        self.orders_ports_dict_filename='./tool_file/orders_ports_dict.txt'
+        self.port_map_dict_filename='./tool_file/port_map_dict.txt'
+        self.all_port_points_filename='./tool_file/all_port_points.txt'
 
 
 config = Config()
