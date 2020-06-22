@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-23 00:50:54
+@LastEditTime: 2020-06-23 00:58:16
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -109,43 +109,6 @@ class CutTrace(object):
         result =  self.get_use_indexs(start_port, end_port, line=False)
         return len(result)
     
-    def __get_start_end_index_cut_for_test(self, df, test_lonlat, distance_threshold):
-        # 用于apply处理
-        # 先处理从头开始的
-        test_start_lon, test_start_lat  = test_lonlat[0], test_lonlat[1]
-        test_end_lon, test_end_lat = test_lonlat[2], test_lonlat[3]
-        
-        start_index = -1
-        for i in range(df.index[0], df.index[-1]):
-            lon, lat = df.loc[i][['longitude', 'latitude']].tolist()
-            distance = haversine(lon, lat, test_start_lon, test_start_lat)
-            if distance <= distance_threshold:
-                start_index = i
-                break
-        if start_index != df.index[-1] - 1 or start_index != -1:
-            pass
-        else:
-            start_index = -1
-            # ! 结束
-        
-        end_index = -1
-        if start_index != -1:
-            for i in range(df.index[-1], start_index, -1):
-                lon, lat = df.loc[i][['longitude', 'latitude']].tolist()
-                distance = haversine(lon, lat, test_end_lon, test_end_lat)
-                if distance <= distance_threshold:
-                    end_index = i
-                    break
-            if end_index != df.index[0]+1 or end_index != -1 or end_index != start_index +1:
-                pass
-            else:
-                end_index = -1
-            # ! 结束
-        
-        if start_index != -1 and end_index != -1:
-            return [start_index, end_index]
-        else:
-            return []
     
     def cut_trace_for_test(self, test_df, match_df, distance_threshold=80):
         """根据test的df(包含lon、lat数据，即轨迹)，对match_df进行切割
@@ -163,11 +126,42 @@ class CutTrace(object):
         test_start_lon, test_start_lat = test_df.loc[test_df.index[0]][['longitude', 'latitude']].tolist()
         test_end_lon, test_end_lat = test_df.loc[test_df.index[0]][['longitude', 'latitude']].tolist()
         
-        
+        def get_start_end_index_cut_for_test(df):
+            # 用于apply处理
+            # 先处理从头开始的
+            start_index = -1
+            for i in range(df.index[0], df.index[-1]):
+                lon, lat = df.loc[i][['longitude', 'latitude']].tolist()
+                distance = haversine(lon, lat, test_start_lon, test_start_lat)
+                if distance <= distance_threshold:
+                    start_index = i
+                    break
+            if start_index != df.index[-1] - 1 or start_index != -1:
+                pass
+            else:
+                start_index = -1
+                # ! 结束
             
-        use_indexs = match_df.groupby('loadingOrder')['longitude', 'latitude'].parallel_apply(
-            lambda x: self.__get_start_end_index_cut_for_test(
-                x, [test_start_lon, test_start_lat, test_end_lon, test_end_lat], distance_threshold))
+            end_index = -1
+            if start_index != -1:
+                for i in range(df.index[-1], start_index, -1):
+                    lon, lat = df.loc[i][['longitude', 'latitude']].tolist()
+                    distance = haversine(lon, lat, test_start_lon, test_start_lat)
+                    if distance <= distance_threshold:
+                        end_index = i
+                        break
+                if end_index != df.index[0]+1 or end_index != -1 or end_index != start_index +1:
+                    pass
+                else:
+                    end_index = -1
+                # ! 结束
+            
+            if start_index != -1 and end_index != -1:
+                return [start_index, end_index]
+            else:
+                return []
+            
+        use_indexs = match_df.groupby('loadingOrder')['longitude', 'latitude'].parallel_apply(get_start_end_index_cut_for_test)
         use_indexs = use_indexs.tolist()
         
         use_indexs_ = []
