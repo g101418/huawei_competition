@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-21 21:36:36
+@LastEditTime: 2020-06-23 00:15:48
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -24,15 +24,22 @@ class TrajectoryMatching(object):
 
     """
 
-    def __init__(self, train_data, geohash_precision=4, cutting_proportion=-1, metric="sspd"):
+    def __init__(self, 
+                 train_data, 
+                 geohash_precision=4, 
+                 cutting_proportion=-1, 
+                 metric="sspd",
+                 cut_distance_threshold=-1):
         super().__init__()
         self.train_data = train_data
         self.__cutTrace = CutTrace()
         self.match_traj_dict = {}
         self.match_df_dict = {}
-        self.geohash_precision = geohash_precision
-        self.cutting_proportion = cutting_proportion
-        self.metric = metric
+        self.__geohash_precision = geohash_precision
+        # self.cutting_proportion = cutting_proportion
+        self.cutting_proportion = -1 # 按比例切割暂时不用
+        self.__metric = metric
+        self.__cut_distance_threshold = cut_distance_threshold
 
     def __get_traj_order_label(self, start_port, end_port):
         """按照起止港得到相关训练集
@@ -84,7 +91,8 @@ class TrajectoryMatching(object):
                 start_port, end_port, line=False)
             result_ = []
             for row in result:
-                result_ += list(range(row[1], int((row[2]+1-row[1]) * self.cutting_proportion)+row[1]))
+                if len(row) != 0:
+                    result_ += list(range(row[1], int((row[2]+1-row[1]) * self.cutting_proportion)+row[1]))
             result = result_
         else:
             result = self.__cutTrace.get_use_indexs(start_port, end_port)
@@ -128,7 +136,7 @@ class TrajectoryMatching(object):
         traj_list = list(map(list, zip(lon, lat)))
 
         traj_list = list(map(lambda x: geohash.encode(
-            x[1], x[0], precision=self.geohash_precision), traj_list))
+            x[1], x[0], precision=self.__geohash_precision), traj_list))
         traj_list = [k for k, g in itertools.groupby(traj_list)]
         traj_list = list(
             map(lambda x: [geohash.decode(x)[1], geohash.decode(x)[0]], traj_list))
@@ -214,7 +222,7 @@ class TrajectoryMatching(object):
         Args:
             order (str): 订单名
             trace (list): 1行2列list，分别是开始港、结束港
-            traj (np.array): 轨迹
+            traj (np.array): test的轨迹
 
         Returns:
             order, label () :订单名称、时间差
@@ -225,9 +233,14 @@ class TrajectoryMatching(object):
 
         if train_label_list is None:
             return None, None
+        
+        # TODO 按照test轨迹切割首尾
+        if self.__cut_distance_threshold > 0:
+            train_traj_list = self.__cutTrace.cut_traj_for_test(
+                traj, train_traj_list, self.__cut_distance_threshold)
 
         cdist = list(tdist.cdist(
-            [traj], train_traj_list, metric=self.metric)[0])
+            [traj], train_traj_list, metric=self.__metric)[0])
         min_traj_index = cdist.index(min(cdist))
 
         return train_order_list[min_traj_index], train_label_list[min_traj_index]
@@ -294,7 +307,7 @@ class TrajectoryMatching(object):
                 start_port, end_port, reset_index=True, for_df=True)
 
             if match_df is not None:
-                self.match_df_dict[trace_str] = match_df
+                self.match_df_dict[trace_str] = match_df.copy()
                 return match_df
             else:
                 return match_df
@@ -310,7 +323,7 @@ if __name__ == "__main__":
     pandarallel.initialize()
 
     trajectoryMatching = TrajectoryMatching(
-        train_data, geohash_precision=5, cutting_proportion=0.5, metric='sspd')
+        train_data, geohash_precision=5, metric='sspd')
 
     # 该函数返回test_data集中相关的所有：订单、trace、航线(是test本身的航线)
     order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(
