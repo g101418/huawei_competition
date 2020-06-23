@@ -206,5 +206,5 @@ if __name__ == '__main__':
         haversine(-82.754642, 22.995645, -83.935017, 22.922867)))
     portname, coor, distance = portsUtils.get_port(83.975602, 28.20403)
     print(portname, coor, distance)
-    portname, coor = portsUtils.get_mapped_port_name('MY_PORT_22')
+    portname, coor = portsUtils.get_mapped_port_name('MXZLO')
     print(portname, coor)

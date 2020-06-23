@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-19 19:08:19
-@LastEditTime: 2020-06-21 01:11:40
+@LastEditTime: 2020-06-24 00:09:22
 @Description: 找到航线经过的所有港口
 @FilePath: /HUAWEI_competition/find_all_ports_on_trace.py
 '''
@@ -168,12 +168,12 @@ class FindPorts(object):
         if ordername is not None:
             train_data = train_data[train_data['loadingOrder'] == ordername]
 
-        orders_ports = train_data[:].groupby('loadingOrder')[
-            'timestamp', 'longitude', 'latitude'].parallel_apply(self.find_all_ports_from_order)
+        orders_ports = train_data[:].groupby('loadingOrder')[[
+            'timestamp', 'longitude', 'latitude']].parallel_apply(self.find_all_ports_from_order)
         self.orders_ports_dict = orders_ports.to_dict()
 
-        start_end_ports = train_data[:].groupby('loadingOrder')[
-            'loadingOrder', 'timestamp', 'longitude', 'latitude'].parallel_apply(
+        start_end_ports = train_data[:].groupby('loadingOrder')[[
+            'loadingOrder', 'timestamp', 'longitude', 'latitude']].parallel_apply(
                 self.insert_start_end_port)
         self.start_end_ports_dict = start_end_ports.to_dict()
 
@@ -191,3 +191,6 @@ if __name__ == '__main__':
 
     find_ports = FindPorts()
     orders_ports_dict = find_ports.find_ports(train_data, 'AA191175561416')
+    
+    with open('orders_ports_dict_06240039.txt', 'w') as f:
+        f.write(str(orders_ports_dict))
