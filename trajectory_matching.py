@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-23 21:51:50
+@LastEditTime: 2020-06-23 22:13:52
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -195,8 +195,8 @@ class TrajectoryMatching(object):
         traj_list = traj_list.tolist()
         traj_list = list(map(lambda x: np.array(x), traj_list))
 
-        trace_list = test_data.groupby('loadingOrder')[[
-            'TRANSPORT_TRACE']].apply(self.__get_trace).tolist()
+        trace_list = test_data.groupby('loadingOrder')[
+            'TRANSPORT_TRACE'].apply(self.__get_trace).tolist()
 
         return order_list, trace_list, traj_list
 
