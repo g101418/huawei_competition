@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-23 08:17:14
+@LastEditTime: 2020-06-23 09:37:58
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -10,6 +10,7 @@ from utils import portsUtils
 from config import config
 
 import pandas as pd
+import numpy as np
 
 class CutTrace(object):
     """用于切割轨迹
@@ -120,7 +121,7 @@ class CutTrace(object):
             distance_threshold (int, optional): 到首尾节点的距离阈值. Defaults to 80.
 
         Returns:
-            [pd.DataFrame]: 切割后的df数据，index已经重设，可能为空
+            [pd.DataFrame]: 切割后的df数据，index已经重设，可能为空，最后一条用切割前最后一条代替以求Label
         """
         # 得到test的首末点坐标
         test_start_lon, test_start_lat = test_df.loc[test_df.index[0]][['longitude', 'latitude']].tolist()
@@ -162,7 +163,7 @@ class CutTrace(object):
                 use_df_label.loc[end_index, 'timestamp'] = df.loc[df.index[-1], 'timestamp']
                 return [use_df_label]
             else:
-                return [pd.DataFrame()]
+                return [pd.DataFrame(columns=df.columns)]
             
         use_df = match_df.groupby('loadingOrder')['longitude', 'latitude'].parallel_apply(
             get_start_end_index_cut_for_test).tolist()
@@ -204,9 +205,12 @@ class CutTrace(object):
         match_df.columns=['longitude', 'latitude', 'loadingOrder']
         
         cutted_df = self.cut_trace_for_test(test_df, match_df, distance_threshold)
-        
-        cutted_traj = cutted_df.groupby('loadingOrder')[['longitude', 'latitude']].apply(lambda x: [x.values])
-        cutted_traj = list(map(lambda x: x[0], cutted_traj.tolist()))
+        # ! 遇到空DataFrame问题
+        if len(cutted_df) != 0:
+            cutted_traj = cutted_df.groupby('loadingOrder')[['longitude', 'latitude']].apply(lambda x: [x.values])
+            cutted_traj = list(map(lambda x: x[0], cutted_traj.tolist()))
+        else:
+            cutted_traj = []
 
         return cutted_traj
         

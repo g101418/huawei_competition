@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-23 00:15:48
+@LastEditTime: 2020-06-23 09:40:12
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -239,6 +239,10 @@ class TrajectoryMatching(object):
             train_traj_list = self.__cutTrace.cut_traj_for_test(
                 traj, train_traj_list, self.__cut_distance_threshold)
 
+            if len(train_traj_list) == 0:
+                return None, None
+        
+
         cdist = list(tdist.cdist(
             [traj], train_traj_list, metric=self.__metric)[0])
         min_traj_index = cdist.index(min(cdist))
@@ -350,7 +354,9 @@ if __name__ == "__main__":
     final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
         lambda x: trajectoryMatching.parallel_get_label(x))
     final_order_label = final_order_label.tolist()
-
+    # ! 此处可能返回None, None
+    
+    
     with open('./final_order_label_0621.txt', 'w')as f:
         f.write(str(final_order_label))
 
