@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-23 00:58:16
+@LastEditTime: 2020-06-23 08:17:14
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -120,7 +120,7 @@ class CutTrace(object):
             distance_threshold (int, optional): 到首尾节点的距离阈值. Defaults to 80.
 
         Returns:
-            match_df: 切割后的df数据，index已经重设
+            [pd.DataFrame]: 切割后的df数据，index已经重设，可能为空
         """
         # 得到test的首末点坐标
         test_start_lon, test_start_lat = test_df.loc[test_df.index[0]][['longitude', 'latitude']].tolist()
@@ -156,23 +156,23 @@ class CutTrace(object):
                     end_index = -1
                 # ! 结束
             
+            # ! 打标问题
             if start_index != -1 and end_index != -1:
-                return [start_index, end_index]
+                use_df_label = df.loc[start_index:end_index]
+                use_df_label.loc[end_index, 'timestamp'] = df.loc[df.index[-1], 'timestamp']
+                return [use_df_label]
             else:
-                return []
+                return [pd.DataFrame()]
             
-        use_indexs = match_df.groupby('loadingOrder')['longitude', 'latitude'].parallel_apply(get_start_end_index_cut_for_test)
-        use_indexs = use_indexs.tolist()
+        use_df = match_df.groupby('loadingOrder')['longitude', 'latitude'].parallel_apply(
+            get_start_end_index_cut_for_test).tolist()
+        use_df_ = pd.DataFrame()
+        for item in use_df:
+            use_df_ = use_df_.append(item[0], ignore_index=True)
         
-        use_indexs_ = []
-        for row in use_indexs:
-            if len(row) != 0:
-                use_indexs_ += list(range(row[0], row[1]))
-        
-        match_df = match_df.loc[use_indexs_]
-        match_df = match_df.reset_index(drop=True)
+        use_df_ = use_df_.reset_index(drop=True)
 
-        return match_df
+        return use_df_
     
     def cut_traj_for_test(self, test_traj, match_traj, distance_threshold=80):
         """对cut_trace_for_test函数的包装，用于处理traj数据(np.array格式)
