@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-23 09:37:58
+@LastEditTime: 2020-06-23 10:59:35
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -147,7 +147,7 @@ class CutTrace(object):
             if start_index != -1:
                 for i in range(df.index[-1], start_index, -1):
                     lon, lat = df.loc[i][['longitude', 'latitude']].tolist()
-                    distance = haversine(lon, lat, test_start_lon, test_start_lat)
+                    distance = haversine(lon, lat, test_end_lon, test_end_lat)
                     if distance <= distance_threshold:
                         end_index = i
                         break
