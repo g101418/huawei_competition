@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-23 10:59:35
+@LastEditTime: 2020-06-23 11:25:38
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -165,7 +165,7 @@ class CutTrace(object):
             else:
                 return [pd.DataFrame(columns=df.columns)]
             
-        use_df = match_df.groupby('loadingOrder')['longitude', 'latitude'].parallel_apply(
+        use_df = match_df.groupby('loadingOrder')[['longitude', 'latitude', 'timestamp']].apply(
             get_start_end_index_cut_for_test).tolist()
         use_df_ = pd.DataFrame()
         for item in use_df:
@@ -200,9 +200,10 @@ class CutTrace(object):
             
             traj_df = pd.DataFrame(traj)
             traj_df['loadingOrder'] = 'XX_' + str(i)
+            traj_df['timestamp'] = 'XXXXX'
             
             match_df = match_df.append(traj_df, ignore_index=True)
-        match_df.columns=['longitude', 'latitude', 'loadingOrder']
+        match_df.columns=['longitude', 'latitude', 'loadingOrder', 'timestamp']
         
         cutted_df = self.cut_trace_for_test(test_df, match_df, distance_threshold)
         # ! 遇到空DataFrame问题

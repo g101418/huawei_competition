@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-23 11:13:33
+@LastEditTime: 2020-06-23 11:30:18
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -59,8 +59,8 @@ class TrajectoryMatching(object):
 
         order_list = match_df.loadingOrder.unique().tolist()
 
-        traj_list_label_series = match_df.groupby('loadingOrder')[
-            'timestamp', 'longitude', 'latitude'].apply(lambda x: self.__get_traj_list_label(x))
+        traj_list_label_series = match_df.groupby('loadingOrder')[[
+            'timestamp', 'longitude', 'latitude']].apply(lambda x: self.__get_traj_list_label(x))
         traj_list_label_series = np.array(traj_list_label_series.tolist())
 
         label_list = list(traj_list_label_series[:, 1])
@@ -190,13 +190,13 @@ class TrajectoryMatching(object):
         """
         order_list = test_data.loadingOrder.unique().tolist()
 
-        traj_list = test_data.groupby('loadingOrder')[
-            'longitude', 'latitude'].apply(self.__get_traj_list)
+        traj_list = test_data.groupby('loadingOrder')[[
+            'longitude', 'latitude']].apply(self.__get_traj_list)
         traj_list = traj_list.tolist()
         traj_list = list(map(lambda x: np.array(x), traj_list))
 
-        trace_list = test_data.groupby('loadingOrder')[
-            'TRANSPORT_TRACE'].apply(self.__get_trace).tolist()
+        trace_list = test_data.groupby('loadingOrder')[[
+            'TRANSPORT_TRACE']].apply(self.__get_trace).tolist()
 
         return order_list, trace_list, traj_list
 
