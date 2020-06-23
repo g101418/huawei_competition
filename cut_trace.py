@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-23 11:25:38
+@LastEditTime: 2020-06-23 21:52:19
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -110,8 +110,8 @@ class CutTrace(object):
         result =  self.get_use_indexs(start_port, end_port, line=False)
         return len(result)
     
-    
-    def cut_trace_for_test(self, test_df, match_df, distance_threshold=80):
+    # ! 添加处理轨迹和test之trace数据
+    def cut_trace_for_test(self, test_df, match_df, distance_threshold=80, for_traj=False):
         """根据test的df(包含lon、lat数据，即轨迹)，对match_df进行切割
         该函数针对的是df数据，而不是轨迹数据(np.array)
         思路是将train中轨迹，从头从尾分别开始，计算每个点到test头尾点的距离，符合某个阈值时停止
@@ -128,6 +128,7 @@ class CutTrace(object):
         test_end_lon, test_end_lat = test_df.loc[test_df.index[0]][['longitude', 'latitude']].tolist()
         
         def get_start_end_index_cut_for_test(df):
+            # df : 训练集轨迹对应的df
             # 用于apply处理
             # 先处理从头开始的
             start_index = -1
@@ -160,13 +161,17 @@ class CutTrace(object):
             # ! 打标问题
             if start_index != -1 and end_index != -1:
                 use_df_label = df.loc[start_index:end_index]
+                # 最后一行数据的时间戳为对应train轨迹的到港时间戳
                 use_df_label.loc[end_index, 'timestamp'] = df.loc[df.index[-1], 'timestamp']
                 return [use_df_label]
             else:
                 return [pd.DataFrame(columns=df.columns)]
             
-        use_df = match_df.groupby('loadingOrder')[['longitude', 'latitude', 'timestamp']].apply(
-            get_start_end_index_cut_for_test).tolist()
+        if for_traj == True:
+            use_df = match_df.groupby('loadingOrder').apply(get_start_end_index_cut_for_test).tolist()
+        else:
+            use_df = match_df.groupby('loadingOrder').parallel_apply(get_start_end_index_cut_for_test).tolist()
+        
         use_df_ = pd.DataFrame()
         for item in use_df:
             use_df_ = use_df_.append(item[0], ignore_index=True)
@@ -175,7 +180,7 @@ class CutTrace(object):
 
         return use_df_
     
-    def cut_traj_for_test(self, test_traj, match_traj, distance_threshold=80):
+    def cut_traj_for_test(self, test_traj, match_traj, distance_threshold=80, for_traj=True):
         """对cut_trace_for_test函数的包装，用于处理traj数据(np.array格式)
 
         Args:
@@ -205,7 +210,7 @@ class CutTrace(object):
             match_df = match_df.append(traj_df, ignore_index=True)
         match_df.columns=['longitude', 'latitude', 'loadingOrder', 'timestamp']
         
-        cutted_df = self.cut_trace_for_test(test_df, match_df, distance_threshold)
+        cutted_df = self.cut_trace_for_test(test_df, match_df, distance_threshold, for_traj=True)
         # ! 遇到空DataFrame问题
         if len(cutted_df) != 0:
             cutted_traj = cutted_df.groupby('loadingOrder')[['longitude', 'latitude']].apply(lambda x: [x.values])

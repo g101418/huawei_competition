@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-23 11:30:18
+@LastEditTime: 2020-06-23 21:51:50
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -36,10 +36,10 @@ class TrajectoryMatching(object):
         self.match_traj_dict = {}
         self.match_df_dict = {}
         self.__geohash_precision = geohash_precision
-        # self.cutting_proportion = cutting_proportion
-        self.cutting_proportion = -1 # 按比例切割暂时不用
+        # self.__cutting_proportion = cutting_proportion
+        self.__cutting_proportion = -1 # 按比例切割暂时不用
         self.__metric = metric
-        self.__cut_distance_threshold = cut_distance_threshold
+        self.cut_distance_threshold = cut_distance_threshold
 
     def __get_traj_order_label(self, start_port, end_port):
         """按照起止港得到相关训练集
@@ -86,13 +86,13 @@ class TrajectoryMatching(object):
         start_port = portsUtils.get_mapped_port_name(start_port)[0]
         end_port = portsUtils.get_mapped_port_name(end_port)[0]
 
-        if for_df == True and self.cutting_proportion > 0:
+        if for_df == True and self.__cutting_proportion > 0:
             result = self.__cutTrace.get_use_indexs(
                 start_port, end_port, line=False)
             result_ = []
             for row in result:
                 if len(row) != 0:
-                    result_ += list(range(row[1], int((row[2]+1-row[1]) * self.cutting_proportion)+row[1]))
+                    result_ += list(range(row[1], int((row[2]+1-row[1]) * self.__cutting_proportion)+row[1]))
             result = result_
         else:
             result = self.__cutTrace.get_use_indexs(start_port, end_port)
@@ -141,8 +141,8 @@ class TrajectoryMatching(object):
         traj_list = list(
             map(lambda x: [geohash.decode(x)[1], geohash.decode(x)[0]], traj_list))
 
-        if self.cutting_proportion > 0:
-            traj_list = traj_list[:int(len(traj_list)*self.cutting_proportion)]
+        if self.__cutting_proportion > 0:
+            traj_list = traj_list[:int(len(traj_list)*self.__cutting_proportion)]
 
         return traj_list
 
@@ -235,9 +235,9 @@ class TrajectoryMatching(object):
             return None, None
         
         # TODO 按照test轨迹切割首尾
-        if self.__cut_distance_threshold > 0:
+        if self.cut_distance_threshold > 0:
             train_traj_list = self.__cutTrace.cut_traj_for_test(
-                traj, train_traj_list, self.__cut_distance_threshold)
+                traj, train_traj_list, self.cut_distance_threshold, for_traj=True)
 
             if len(train_traj_list) == 0:
                 return None, None
@@ -350,7 +350,8 @@ if __name__ == "__main__":
 
     matched_test_data = pd.DataFrame(
         {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
-
+    
+    
     final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
         lambda x: trajectoryMatching.parallel_get_label(x))
     final_order_label = final_order_label.tolist()
