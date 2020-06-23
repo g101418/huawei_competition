@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-23 09:40:12
+@LastEditTime: 2020-06-23 11:13:33
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -327,7 +327,7 @@ if __name__ == "__main__":
     pandarallel.initialize()
 
     trajectoryMatching = TrajectoryMatching(
-        train_data, geohash_precision=5, metric='sspd')
+        train_data, geohash_precision=5, cut_distance_threshold=60, metric='sspd')
 
     # 该函数返回test_data集中相关的所有：订单、trace、航线(是test本身的航线)
     order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(
