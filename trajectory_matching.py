@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-24 19:07:14
+@LastEditTime: 2020-06-24 22:49:40
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -368,6 +368,9 @@ class TrajectoryMatching(object):
         cutted_df = self.__cutTrace.cut_trace_for_test(
             df, match_df, self.cut_distance_threshold, for_traj=True)
 
+        if len(cutted_df) == 0:
+            return [None, None, None]
+        
         # cutted_df.groupby('loadingOrder').apply(self.__get_modified_traj_label)
         # match_traj_dict
         

@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-24 19:52:24
+@LastEditTime: 2020-06-24 22:46:17
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -125,7 +125,7 @@ class CutTrace(object):
         """
         # 得到test的首末点坐标
         test_start_lon, test_start_lat = test_df.loc[test_df.index[0]][['longitude', 'latitude']].tolist()
-        test_end_lon, test_end_lat = test_df.loc[test_df.index[0]][['longitude', 'latitude']].tolist()
+        test_end_lon, test_end_lat = test_df.loc[test_df.index[-1]][['longitude', 'latitude']].tolist()
         
         def get_start_end_index_cut_for_test(df):
             # df : 训练集轨迹对应的df
