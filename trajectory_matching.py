@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-24 22:49:40
+@LastEditTime: 2020-06-25 07:41:03
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -368,6 +368,15 @@ class TrajectoryMatching(object):
         cutted_df = self.__cutTrace.cut_trace_for_test(
             df, match_df, self.cut_distance_threshold, for_traj=True)
 
+        cut_multi = 2.0
+        while len(cutted_df) == 0:
+            if self.cut_distance_threshold * cut_multi < 200:
+                cutted_df = self.__cutTrace.cut_trace_for_test(
+                    df, match_df, self.cut_distance_threshold*cut_multi, for_traj=True)
+                cut_multi += 1.0
+            else:
+                break
+        
         if len(cutted_df) == 0:
             return [None, None, None]
         
@@ -490,7 +499,7 @@ if __name__ == "__main__":
     pandarallel.initialize()
 
     trajectoryMatching = TrajectoryMatching(
-        train_data, geohash_precision=5, cut_distance_threshold=50, metric='sspd')
+        train_data, geohash_precision=5, cut_distance_threshold=30, metric='sspd')
     
     order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(test_data)
     
@@ -534,12 +543,12 @@ if __name__ == "__main__":
         lambda x: trajectoryMatching.parallel_get_label(x, test_data))
     final_order_label = final_order_label.tolist()
     
-    with open('./final_order_label_0624.txt', 'w')as f:
+    with open('./final_order_label_0625.txt', 'w')as f:
         f.write(str(final_order_label))
 
     final_order_label_dict = {}
     for i in range(len(final_order_label)):
         final_order_label_dict[final_order_label[i][0]] = final_order_label[i][2]
 
-    with open('final_order_label_dict_0624.txt', 'w')as f:
+    with open('final_order_label_dict_0625.txt', 'w')as f:
         f.write(str(final_order_label_dict))
