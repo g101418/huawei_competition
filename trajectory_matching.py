@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-24 13:38:42
+@LastEditTime: 2020-06-24 14:23:55
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -234,8 +234,8 @@ class TrajectoryMatching(object):
             if train_label_list is None:
                 return None, None
         else:
-            if order in self.match_df_dict:
-                train_order_list, train_label_list, train_traj_list = self.match_df_dict[order]
+            if order in self.match_traj_dict:
+                train_order_list, train_label_list, train_traj_list = self.match_traj_dict[order]
                 if train_label_list is None:
                     return None, None
             else:
@@ -372,6 +372,8 @@ class TrajectoryMatching(object):
         traj_list = list(map(lambda x: np.array(x), traj_list))
         
         self.match_traj_dict[order] = [order_list, label_list, traj_list]
+
+        print('modify_traj_label:', order)
 
         return
 
