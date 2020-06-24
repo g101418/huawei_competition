@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-24 16:26:10
+@LastEditTime: 2020-06-24 19:07:14
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -216,7 +216,7 @@ class TrajectoryMatching(object):
         else:
             return len(result)
 
-    def get_final_label(self, order, trace, traj):
+    def get_final_label(self, order, trace, traj, test_data):
         """输入某一订单的订单名称、trace、轨迹，得到最相似轨迹的label并返回
         在调用此函数前，应该确认该trace存在相关轨迹！
         Args:
@@ -227,36 +227,45 @@ class TrajectoryMatching(object):
         Returns:
             order, label () :订单名称、时间差
         """
-        if self.cut_distance_threshold < 0:
-            train_order_list, train_label_list, train_traj_list = self.get_related_traj(
-                trace[0], trace[1])
+        try:
+            if self.cut_distance_threshold < 0:
+                train_order_list, train_label_list, train_traj_list = self.get_related_traj(
+                    trace[0], trace[1])
 
-            if train_label_list is None:
-                return None, None
-        else:
-            if order in self.match_traj_dict:
-                train_order_list, train_label_list, train_traj_list = self.match_traj_dict[order]
                 if train_label_list is None:
                     return None, None
             else:
-                return None, None
-        
-        # # TODO 按照test轨迹切割首尾
-        # if self.cut_distance_threshold > 0:
-        #     train_traj_list = self.__cutTrace.cut_traj_for_test(
-        #         traj, train_traj_list, self.cut_distance_threshold, for_traj=True)
+                # TODO将match整合进这里
+                train_order_list, train_label_list, train_traj_list = self.modify_traj_label(test_data)
+                if train_label_list is None or len(train_label_list) == 0:
+                    return None, None
+                # test_data
+                # if order in self.match_traj_dict:
+                #     train_order_list, train_label_list, train_traj_list = self.match_traj_dict[order]
+                #     if train_label_list is None:
+                #         return None, None
+                # else:
+                #     return None, None
+            
+            # # TODO 按照test轨迹切割首尾
+            # if self.cut_distance_threshold > 0:
+            #     train_traj_list = self.__cutTrace.cut_traj_for_test(
+            #         traj, train_traj_list, self.cut_distance_threshold, for_traj=True)
 
-        #     if len(train_traj_list) == 0:
-        #         return None, None
+            #     if len(train_traj_list) == 0:
+            #         return None, None
         
-
-        cdist = list(tdist.cdist(
-            [traj], train_traj_list, metric=self.__metric)[0])
-        min_traj_index = cdist.index(min(cdist))
+        
+            cdist = list(tdist.cdist(
+                [traj], train_traj_list, metric=self.__metric)[0])
+            min_traj_index = cdist.index(min(cdist))
+        except:
+            print('error:', order)
+            return None,None
 
         return train_order_list[min_traj_index], train_label_list[min_traj_index]
 
-    def parallel_get_label(self, df):
+    def parallel_get_label(self, df, test_data):
         """用于并行化处理，得到order及label
 
         Args:
@@ -269,7 +278,9 @@ class TrajectoryMatching(object):
         trace = df.loc[df.index[0], 'trace']
         traj = df.loc[df.index[0], 'traj']
 
-        result_order, result_label = self.get_final_label(order, trace, traj)
+        test_data_ = test_data[test_data['loadingOrder']==order]
+        
+        result_order, result_label = self.get_final_label(order, trace, traj, test_data_)
         return [order, result_order, result_label]
 
     def get_related_traj(self, start_port, end_port):
@@ -350,12 +361,12 @@ class TrajectoryMatching(object):
         trace_str = strat_port+'-'+end_port
         
         if trace_str not in self.match_df_dict:
-            return
+            return [None, None, None]
         
         match_df = self.match_df_dict[trace_str]
         
         cutted_df = self.__cutTrace.cut_trace_for_test(
-            df, match_df, self.cut_distance_threshold, for_traj=False)
+            df, match_df, self.cut_distance_threshold, for_traj=True)
 
         # cutted_df.groupby('loadingOrder').apply(self.__get_modified_traj_label)
         # match_traj_dict
@@ -371,11 +382,9 @@ class TrajectoryMatching(object):
         traj_list = list(traj_list_label_series[:, 0])
         traj_list = list(map(lambda x: np.array(x), traj_list))
         
-        self.match_traj_dict[order] = [order_list, label_list, traj_list]
+        # self.match_traj_dict[order] = [order_list, label_list, traj_list]
 
-        print('modify_traj_label:', order)
-
-        return
+        return [order_list, label_list, traj_list]
 
     
     # TODO traj打标
@@ -511,15 +520,15 @@ if __name__ == "__main__":
     #     test_df = test_data[test_data['loadingOrder']==order]
         
     #     cutted_df = cutTrace.cut_trace_for_test(test_df, train_df, 80)
-    
-    test_data.groupby('loadingOrder').apply(lambda x: trajectoryMatching.modify_traj_label(x))
-    print('剪切完毕')
+    # print('开始剪切')
+    # test_data.groupby('loadingOrder').apply(lambda x: trajectoryMatching.modify_traj_label(x))
+    # print('剪切完毕')
 
     matched_test_data = pd.DataFrame(
         {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
 
     final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
-        lambda x: trajectoryMatching.parallel_get_label(x))
+        lambda x: trajectoryMatching.parallel_get_label(x, test_data))
     final_order_label = final_order_label.tolist()
     
     with open('./final_order_label_0624.txt', 'w')as f:

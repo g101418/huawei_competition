@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-24 16:10:59
+@LastEditTime: 2020-06-24 19:52:24
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -141,7 +141,20 @@ class CutTrace(object):
             # for i in range(df.index[0], df.index[-1]):
                 lon, lat = df.loc[i][['longitude', 'latitude']].tolist()
                 distance = haversine(lon, lat, test_start_lon, test_start_lat)
+                if distance > 2000:
+                    if i + 400 < df.index[-1]:
+                        if try_dist(lon, lat, i+400) < 2000:
+                            i += 400
+                            continue
                 if distance > 1000:
+                    if i + 200 < df.index[-1]:
+                        if try_dist(lon, lat, i+200) < 1000:
+                            i += 200
+                            continue
+                    if i + 100 < df.index[-1]:
+                        if try_dist(lon, lat, i+100) < 1000:
+                            i += 100
+                            continue
                     if i + 50 < df.index[-1]:
                         if try_dist(lon, lat, i+50) < 1000:
                             i += 50
@@ -153,8 +166,7 @@ class CutTrace(object):
                     if i + 20 < df.index[-1]:
                         if try_dist(lon, lat, i+20) < 1000:
                             i += 20
-                            continue    
-                    
+                            continue
                 if distance > 200:
                     if i + 10 < df.index[-1]:
                         if try_dist(lon, lat, i+10) < 200:
@@ -185,7 +197,20 @@ class CutTrace(object):
                 # for i in range(df.index[-1], start_index, -1):
                     lon, lat = df.loc[i][['longitude', 'latitude']].tolist()
                     distance = haversine(lon, lat, test_end_lon, test_end_lat)
+                    if distance > 2000:
+                        if i - 400 > start_index:
+                            if try_dist(lon, lat, i-400) < 2000:
+                                i -= 400
+                                continue
                     if distance > 1000:
+                        if i - 200 > start_index:
+                            if try_dist(lon, lat, i-200) < 1000:
+                                i -= 200
+                                continue
+                        if i - 100 > start_index:
+                            if try_dist(lon, lat, i-100) < 1000:
+                                i -= 100
+                                continue
                         if i - 50 > start_index:
                             if try_dist(lon, lat, i-50) < 1000:
                                 i -= 50
