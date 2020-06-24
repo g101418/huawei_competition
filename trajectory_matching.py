@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-23 22:13:52
+@LastEditTime: 2020-06-24 09:16:48
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -227,20 +227,27 @@ class TrajectoryMatching(object):
         Returns:
             order, label () :订单名称、时间差
         """
+        if self.cut_distance_threshold < 0:
+            train_order_list, train_label_list, train_traj_list = self.get_related_traj(
+                trace[0], trace[1])
 
-        train_order_list, train_label_list, train_traj_list = self.get_related_traj(
-            trace[0], trace[1])
-
-        if train_label_list is None:
-            return None, None
-        
-        # TODO 按照test轨迹切割首尾
-        if self.cut_distance_threshold > 0:
-            train_traj_list = self.__cutTrace.cut_traj_for_test(
-                traj, train_traj_list, self.cut_distance_threshold, for_traj=True)
-
-            if len(train_traj_list) == 0:
+            if train_label_list is None:
                 return None, None
+        else:
+            if order in self.match_df_dict:
+                train_order_list, train_label_list, train_traj_list = self.match_df_dict[order]
+                if train_label_list is None:
+                    return None, None
+            else:
+                return None, None
+        
+        # # TODO 按照test轨迹切割首尾
+        # if self.cut_distance_threshold > 0:
+        #     train_traj_list = self.__cutTrace.cut_traj_for_test(
+        #         traj, train_traj_list, self.cut_distance_threshold, for_traj=True)
+
+        #     if len(train_traj_list) == 0:
+        #         return None, None
         
 
         cdist = list(tdist.cdist(
@@ -315,58 +322,113 @@ class TrajectoryMatching(object):
                 return match_df
             else:
                 return match_df
+            
+    def __get_modified_label(self, df):
+        first_time = pd.to_datetime(df.loc[df.index[-2], 'timestamp'])
+        final_time = pd.to_datetime(df.loc[df.index[-1], 'timestamp'])
+        label = final_time - first_time
 
+        return label
+        
+        
+    def __get_modified_traj_label(self, df):
+        # 得到label、traj
+        label = self.__get_modified_label(df)
+        traj_list = self.__get_traj_list(df)
+        
+        return [traj_list, label]
+            
+    def modify_traj_label(self, df):
+        # df为test的中的部分，只有单个订单
+        # 该函数用于并行化处理
+        order = df.iloc[0]['loadingOrder']
+        
+        trace = df.iloc[0]['TRANSPORT_TRACE'].split('-')
+        strat_port = portsUtils.get_mapped_port_name(trace[0])
+        end_port = portsUtils.get_mapped_port_name(trace[1])
+        
+        trace_str = strat_port+'-'+end_port
+        
+        if trace_str not in self.match_df_dict:
+            return
+        
+        match_df = self.match_df_dict[trace_str]
+        
+        cutted_df = self.cutTrace.cut_trace_for_test(
+            df, match_df, self.cut_distance_threshold, for_traj=True)
 
-if __name__ == "__main__":
-    TRAIN_GPS_PATH = './data/_train_drift.csv'
-    train_data = pd.read_csv(TRAIN_GPS_PATH)
+        cutted_df.groupby('loadingOrder').apply(self.__get_modified_traj_label)
+        # match_traj_dict
+        
+        traj_list_label_series = cutted_df.groupby('loadingOrder')[[
+            'timestamp', 'longitude', 'latitude']].apply(lambda x: self.__get_modified_traj_label(x))
+        traj_list_label_series = np.array(traj_list_label_series.tolist())
+        
+        order_list = cutted_df.loadingOrder.unique().tolist()
+        
+        label_list = list(traj_list_label_series[:, 1])
 
-    TEST_GPS_PATH = './data/A_testData0531.csv'
-    test_data = pd.read_csv(TEST_GPS_PATH)
+        traj_list = list(traj_list_label_series[:, 0])
+        traj_list = list(map(lambda x: np.array(x), traj_list))
+        
+        self.match_traj_dict[order] = [order_list, label_list, traj_list]
 
-    pandarallel.initialize()
+        return
 
-    trajectoryMatching = TrajectoryMatching(
-        train_data, geohash_precision=5, cut_distance_threshold=60, metric='sspd')
+    
+    # TODO traj打标
 
-    # 该函数返回test_data集中相关的所有：订单、trace、航线(是test本身的航线)
-    order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(
-        test_data)
-    # ! 此处得到的trace做了map映射
+# if __name__ == "__main__":
+#     TRAIN_GPS_PATH = './data/_train_drift.csv'
+#     train_data = pd.read_csv(TRAIN_GPS_PATH)
 
-    # 找到可以匹配到的order，该列表用于记录匹配到的下标，没有包含在内的下标是一条train中航线都匹配不到的
-    matched_index_list = []
-    for i in range(len(order_list)):
-        length = trajectoryMatching.get_related_traj_len(
-            trace_list[i][0], trace_list[i][1])
-        if length != 0:
-            matched_index_list.append(i)
+#     TEST_GPS_PATH = './data/A_testData0531.csv'
+#     test_data = pd.read_csv(TEST_GPS_PATH)
 
-    matched_order_list, matched_trace_list, matched_traj_list = [], [], []
-    for i in matched_index_list:
-        matched_order_list.append(order_list[i])
-        matched_trace_list.append(trace_list[i])
-        matched_traj_list.append(traj_list[i])
+#     pandarallel.initialize()
 
-    matched_test_data = pd.DataFrame(
-        {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
+#     trajectoryMatching = TrajectoryMatching(
+#         train_data, geohash_precision=5, cut_distance_threshold=60, metric='sspd')
+
+#     # 该函数返回test_data集中相关的所有：订单、trace、航线(是test本身的航线)
+#     order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(
+#         test_data)
+#     # ! 此处得到的trace做了map映射
+
+#     # 找到可以匹配到的order，该列表用于记录匹配到的下标，没有包含在内的下标是一条train中航线都匹配不到的
+#     # TODO 并行化
+#     matched_index_list = []
+#     for i in range(len(order_list)):
+#         length = trajectoryMatching.get_related_traj_len(
+#             trace_list[i][0], trace_list[i][1])
+#         if length != 0:
+#             matched_index_list.append(i)
+
+#     matched_order_list, matched_trace_list, matched_traj_list = [], [], []
+#     for i in matched_index_list:
+#         matched_order_list.append(order_list[i])
+#         matched_trace_list.append(trace_list[i])
+#         matched_traj_list.append(traj_list[i])
+
+#     matched_test_data = pd.DataFrame(
+#         {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
     
     
-    final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
-        lambda x: trajectoryMatching.parallel_get_label(x))
-    final_order_label = final_order_label.tolist()
-    # ! 此处可能返回None, None
+#     final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
+#         lambda x: trajectoryMatching.parallel_get_label(x))
+#     final_order_label = final_order_label.tolist()
+#     # ! 此处可能返回None, None
     
     
-    with open('./final_order_label_0621.txt', 'w')as f:
-        f.write(str(final_order_label))
+#     with open('./final_order_label_0621.txt', 'w')as f:
+#         f.write(str(final_order_label))
 
-    final_order_label_dict = {}
-    for i in range(len(final_order_label)):
-        final_order_label_dict[final_order_label[i][0]] = final_order_label[i][2]
+#     final_order_label_dict = {}
+#     for i in range(len(final_order_label)):
+#         final_order_label_dict[final_order_label[i][0]] = final_order_label[i][2]
 
-    with open('final_order_label_dict.txt', 'w')as f:
-        f.write(str(final_order_label_dict))
+#     with open('final_order_label_dict.txt', 'w')as f:
+#         f.write(str(final_order_label_dict))
 
 
 # if __name__ == "__main__":
@@ -401,3 +463,58 @@ if __name__ == "__main__":
 #         matched_df_list.append(match_df)
 
 #     # ! 此处得到了matched_df_list，每一行即对应的训练集
+
+
+
+if __name__ == "__main__":
+    TRAIN_GPS_PATH = './data/_train_drift.csv'
+    train_data = pd.read_csv(TRAIN_GPS_PATH)
+
+    TEST_GPS_PATH = './data/A_testData0531.csv'
+    test_data = pd.read_csv(TEST_GPS_PATH)
+
+    pandarallel.initialize()
+
+    trajectoryMatching = TrajectoryMatching(
+        train_data, geohash_precision=5, cut_distance_threshold=50, metric='sspd')
+    
+    order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(test_data)
+    
+    # 匹配到的订单下标
+    matched_index_list = []
+    for i in range(len(order_list)):
+        length = trajectoryMatching.get_related_traj_len(
+            trace_list[i][0], trace_list[i][1])
+        if length != 0:
+            matched_index_list.append(i)
+    
+    # 匹配到的订单df，！添加了order下标
+    matched_df_list = []
+    for i in matched_index_list[:]:
+        match_df = trajectoryMatching.get_related_df(
+            trace_list[i][0], trace_list[i][1])
+        matched_df_list.append([i, match_df])
+        
+    matched_order_list, matched_trace_list, matched_traj_list = [], [], []
+    for i in matched_index_list:
+        matched_order_list.append(order_list[i])
+        matched_trace_list.append(trace_list[i])
+        matched_traj_list.append(traj_list[i])
+        
+    # # 修改内存在对象中的traj和label
+    # for data in matched_df_list[25:30]:
+    #     order = order_list[data[0]]
+        
+    #     train_df = data[1]
+    #     test_df = test_data[test_data['loadingOrder']==order]
+        
+    #     cutted_df = cutTrace.cut_trace_for_test(test_df, train_df, 80)
+    
+    test_data.groupby('loadingOrder').parallel_apply(lambda x: trajectoryMatching.modify_traj_label(x))
+        
+    matched_test_data = pd.DataFrame(
+        {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
+
+    final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
+        lambda x: trajectoryMatching.parallel_get_label(x))
+    final_order_label = final_order_label.tolist()
