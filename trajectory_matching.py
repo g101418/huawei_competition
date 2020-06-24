@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-24 14:23:55
+@LastEditTime: 2020-06-24 16:26:10
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -355,7 +355,7 @@ class TrajectoryMatching(object):
         match_df = self.match_df_dict[trace_str]
         
         cutted_df = self.__cutTrace.cut_trace_for_test(
-            df, match_df, self.cut_distance_threshold, for_traj=True)
+            df, match_df, self.cut_distance_threshold, for_traj=False)
 
         # cutted_df.groupby('loadingOrder').apply(self.__get_modified_traj_label)
         # match_traj_dict
@@ -512,11 +512,8 @@ if __name__ == "__main__":
         
     #     cutted_df = cutTrace.cut_trace_for_test(test_df, train_df, 80)
     
-    test_data.groupby('loadingOrder').parallel_apply(lambda x: trajectoryMatching.modify_traj_label(x))
-        
-    import pickle
-    with open('./modify_df_dict.txt', 'wb') as f:
-        pickle.dump(trajectoryMatching, f)        
+    test_data.groupby('loadingOrder').apply(lambda x: trajectoryMatching.modify_traj_label(x))
+    print('剪切完毕')
 
     matched_test_data = pd.DataFrame(
         {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})

@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-23 21:52:19
+@LastEditTime: 2020-06-24 16:10:59
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -131,14 +131,48 @@ class CutTrace(object):
             # df : 训练集轨迹对应的df
             # 用于apply处理
             # 先处理从头开始的
+            def try_dist(lon, lat, try_i):
+                try_lon, try_lat = df.loc[try_i][['longitude', 'latitude']].tolist()
+                return haversine(lon, lat, try_lon, try_lat)
+            
             start_index = -1
-            for i in range(df.index[0], df.index[-1]):
+            i = df.index[0]
+            while i < df.index[-1]:
+            # for i in range(df.index[0], df.index[-1]):
                 lon, lat = df.loc[i][['longitude', 'latitude']].tolist()
                 distance = haversine(lon, lat, test_start_lon, test_start_lat)
+                if distance > 1000:
+                    if i + 50 < df.index[-1]:
+                        if try_dist(lon, lat, i+50) < 1000:
+                            i += 50
+                            continue
+                    if i + 30 < df.index[-1]:
+                        if try_dist(lon, lat, i+30) < 1000:
+                            i += 30
+                            continue
+                    if i + 20 < df.index[-1]:
+                        if try_dist(lon, lat, i+20) < 1000:
+                            i += 20
+                            continue    
+                    
+                if distance > 200:
+                    if i + 10 < df.index[-1]:
+                        if try_dist(lon, lat, i+10) < 200:
+                            i += 10
+                            continue
+                    if i + 5 < df.index[-1]:
+                        if try_dist(lon, lat, i+5) < 200:
+                            i += 5
+                            continue
+                    i += 2
+                    continue
+                    
                 if distance <= distance_threshold:
                     start_index = i
                     break
-            if start_index != df.index[-1] - 1 or start_index != -1:
+                
+                i += 1
+            if start_index < df.index[-1] - 1 or start_index != -1:
                 pass
             else:
                 start_index = -1
@@ -146,13 +180,41 @@ class CutTrace(object):
             
             end_index = -1
             if start_index != -1:
-                for i in range(df.index[-1], start_index, -1):
+                i = df.index[-1]
+                while i > start_index:
+                # for i in range(df.index[-1], start_index, -1):
                     lon, lat = df.loc[i][['longitude', 'latitude']].tolist()
                     distance = haversine(lon, lat, test_end_lon, test_end_lat)
+                    if distance > 1000:
+                        if i - 50 > start_index:
+                            if try_dist(lon, lat, i-50) < 1000:
+                                i -= 50
+                                continue
+                        if i - 30 > start_index:
+                            if try_dist(lon, lat, i-30) < 1000:
+                                i -= 30
+                                continue
+                        if i - 20 > start_index:
+                            if try_dist(lon, lat, i-20) < 1000:
+                                i -= 20
+                                continue
+                    if distance > 200:
+                        if i - 10 > start_index:
+                            if try_dist(lon, lat, i-10) < 200:
+                                i -= 10
+                                continue
+                        if i - 5 > start_index:
+                            if try_dist(lon, lat, i-5) < 200:
+                                i -= 5
+                                continue
+                        i -= 2
+                        continue
+                    
                     if distance <= distance_threshold:
                         end_index = i
                         break
-                if end_index != df.index[0]+1 or end_index != -1 or end_index != start_index +1:
+                    i -= 1
+                if end_index > df.index[0]+1 or end_index != -1 or end_index > start_index +1:
                     pass
                 else:
                     end_index = -1
