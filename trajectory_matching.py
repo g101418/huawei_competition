@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-24 10:20:01
+@LastEditTime: 2020-06-24 13:38:42
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -512,6 +512,10 @@ if __name__ == "__main__":
     
     test_data.groupby('loadingOrder').parallel_apply(lambda x: trajectoryMatching.modify_traj_label(x))
         
+    import pickle
+    with open('./modify_df_dict.txt', 'wb') as f:
+        pickle.dump(trajectoryMatching, f)        
+
     matched_test_data = pd.DataFrame(
         {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
 
