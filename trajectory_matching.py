@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-24 09:16:48
+@LastEditTime: 2020-06-24 10:20:01
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -341,11 +341,11 @@ class TrajectoryMatching(object):
     def modify_traj_label(self, df):
         # df为test的中的部分，只有单个订单
         # 该函数用于并行化处理
-        order = df.iloc[0]['loadingOrder']
+        order = df.loc[df.index[0],'loadingOrder']
         
-        trace = df.iloc[0]['TRANSPORT_TRACE'].split('-')
-        strat_port = portsUtils.get_mapped_port_name(trace[0])
-        end_port = portsUtils.get_mapped_port_name(trace[1])
+        trace = df.loc[df.index[0],'TRANSPORT_TRACE'].split('-')
+        strat_port = portsUtils.get_mapped_port_name(trace[0])[0]
+        end_port = portsUtils.get_mapped_port_name(trace[1])[0]
         
         trace_str = strat_port+'-'+end_port
         
@@ -354,10 +354,10 @@ class TrajectoryMatching(object):
         
         match_df = self.match_df_dict[trace_str]
         
-        cutted_df = self.cutTrace.cut_trace_for_test(
+        cutted_df = self.__cutTrace.cut_trace_for_test(
             df, match_df, self.cut_distance_threshold, for_traj=True)
 
-        cutted_df.groupby('loadingOrder').apply(self.__get_modified_traj_label)
+        # cutted_df.groupby('loadingOrder').apply(self.__get_modified_traj_label)
         # match_traj_dict
         
         traj_list_label_series = cutted_df.groupby('loadingOrder')[[
@@ -518,3 +518,13 @@ if __name__ == "__main__":
     final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
         lambda x: trajectoryMatching.parallel_get_label(x))
     final_order_label = final_order_label.tolist()
+    
+    with open('./final_order_label_0624.txt', 'w')as f:
+        f.write(str(final_order_label))
+
+    final_order_label_dict = {}
+    for i in range(len(final_order_label)):
+        final_order_label_dict[final_order_label[i][0]] = final_order_label[i][2]
+
+    with open('final_order_label_dict_0624.txt', 'w')as f:
+        f.write(str(final_order_label_dict))
