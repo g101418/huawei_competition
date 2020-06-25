@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-25 07:41:03
+@LastEditTime: 2020-06-25 21:08:05
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -367,17 +367,8 @@ class TrajectoryMatching(object):
         
         cutted_df = self.__cutTrace.cut_trace_for_test(
             df, match_df, self.cut_distance_threshold, for_traj=True)
-
-        cut_multi = 2.0
-        while len(cutted_df) == 0:
-            if self.cut_distance_threshold * cut_multi < 200:
-                cutted_df = self.__cutTrace.cut_trace_for_test(
-                    df, match_df, self.cut_distance_threshold*cut_multi, for_traj=True)
-                cut_multi += 1.0
-            else:
-                break
         
-        if len(cutted_df) == 0:
+        if cutted_df.loadingOrder.nunique() == 0:
             return [None, None, None]
         
         # cutted_df.groupby('loadingOrder').apply(self.__get_modified_traj_label)

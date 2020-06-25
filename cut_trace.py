@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-24 22:46:17
+@LastEditTime: 2020-06-25 22:39:45
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -127,13 +127,42 @@ class CutTrace(object):
         test_start_lon, test_start_lat = test_df.loc[test_df.index[0]][['longitude', 'latitude']].tolist()
         test_end_lon, test_end_lat = test_df.loc[test_df.index[-1]][['longitude', 'latitude']].tolist()
         
-        def get_start_end_index_cut_for_test(df):
+        def while_for_cut_multi(df):
+            # 用于循环迭代，依此增加距离阈值以匹配
+            cutted_df = get_start_end_index_cut_for_test(df, threshold=distance_threshold)[0]
+            
+            cut_multi = 2.0
+            while cutted_df.loadingOrder.nunique() == 0:
+                if distance_threshold * cut_multi < 200:
+                    cutted_df = get_start_end_index_cut_for_test(
+                        df, threshold=distance_threshold * cut_multi)[0]
+                    cut_multi += 1.0
+                else:
+                    break
+                
+            if cutted_df.loadingOrder.nunique() != 0:
+                return [cutted_df]
+            else:
+                return [pd.DataFrame(columns=df.columns)]
+        
+        def get_start_end_index_cut_for_test(df, threshold):
             # df : 训练集轨迹对应的df
             # 用于apply处理
             # 先处理从头开始的
-            def try_dist(lon, lat, try_i):
-                try_lon, try_lat = df.loc[try_i][['longitude', 'latitude']].tolist()
-                return haversine(lon, lat, try_lon, try_lat)
+            def limit_try(up_limit, try_i, start=False, end=False):
+                def try_dist(lon, lat, try_i):
+                    try_lon, try_lat = df.loc[try_i][['longitude', 'latitude']].tolist()
+                    return haversine(lon, lat, try_lon, try_lat)
+                if distance > up_limit:
+                    if start == True:
+                        if i + try_i < df.index[-1]:
+                            if try_dist(lon, lat, i + try_i) < up_limit:
+                                return True
+                    else:
+                        if i - try_i > start_index:
+                            if try_dist(lon, lat, i - try_i) < up_limit:
+                                return True
+                return False
             
             start_index = -1
             i = df.index[0]
@@ -146,6 +175,9 @@ class CutTrace(object):
                         if try_dist(lon, lat, i+400) < 2000:
                             i += 400
                             continue
+                if limit_try(2000,400,start=True):
+                    i += 400
+                    continue
                 if distance > 1000:
                     if i + 200 < df.index[-1]:
                         if try_dist(lon, lat, i+200) < 1000:
@@ -179,7 +211,7 @@ class CutTrace(object):
                     i += 2
                     continue
                     
-                if distance <= distance_threshold:
+                if distance <= threshold:
                     start_index = i
                     break
                 
@@ -235,7 +267,7 @@ class CutTrace(object):
                         i -= 2
                         continue
                     
-                    if distance <= distance_threshold:
+                    if distance <= threshold:
                         end_index = i
                         break
                     i -= 1
@@ -255,9 +287,11 @@ class CutTrace(object):
                 return [pd.DataFrame(columns=df.columns)]
             
         if for_traj == True:
-            use_df = match_df.groupby('loadingOrder').apply(get_start_end_index_cut_for_test).tolist()
+            use_df = match_df.groupby('loadingOrder').apply(
+                lambda x:while_for_cut_multi(x)).tolist()
         else:
-            use_df = match_df.groupby('loadingOrder').parallel_apply(get_start_end_index_cut_for_test).tolist()
+            use_df = match_df.groupby('loadingOrder').parallel_apply(
+                lambda x:while_for_cut_multi(x)).tolist()
         
         use_df_ = pd.DataFrame()
         for item in use_df:
