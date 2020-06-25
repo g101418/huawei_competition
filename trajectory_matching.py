@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-25 23:26:24
+@LastEditTime: 2020-06-25 23:31:55
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -75,10 +75,10 @@ class TrajectoryMatching(object):
         Args:
             start_port (str): 起始港
             end_port (str): 终点港
-            reset_index (Bool): 选择是否返回index重排的df
+            reset_index (Bool): 选择是否返回index重排的df，默认重排序
 
         Returns:
-            match_df (pd.DataFrame): 与trace相关的训练集，可选择是否
+            match_df (pd.DataFrame): 与trace相关的训练集，可选择是否排序
         """
 
         start_port = portsUtils.get_mapped_port_name(start_port)[0]
@@ -240,7 +240,7 @@ class TrajectoryMatching(object):
         start_port = portsUtils.get_mapped_port_name(start_port)[0]
         end_port = portsUtils.get_mapped_port_name(end_port)[0]
         
-        result = self.get_related_df(start_port, end_port)[0]
+        result = self.get_related_df(start_port, end_port)
         if result is None:
             return 0
         return result.loadingOrder.nunique()

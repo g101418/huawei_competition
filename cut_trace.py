@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-25 23:25:58
+@LastEditTime: 2020-06-25 23:47:50
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -146,124 +146,125 @@ class CutTrace(object):
             else:
                 return [pd.DataFrame(columns=df.columns)]
         
-            def get_start_end_index_cut_for_test(df, threshold):
-                # df : 训练集轨迹对应的df
-                # 用于apply处理
-                # 先处理从头开始的
-                def limit_try(up_limit, try_i, start=False, end=False):
-                    def try_dist(lon, lat, try_i):
-                        try_lon, try_lat = df.loc[try_i][['longitude', 'latitude']].tolist()
-                        return haversine(lon, lat, try_lon, try_lat)
-                    if distance > up_limit:
-                        if start == True:
-                            if i + try_i < df.index[-1]:
-                                if try_dist(lon, lat, i + try_i) < up_limit:
-                                    return True
-                        else:
-                            if i - try_i > start_index:
-                                if try_dist(lon, lat, i - try_i) < up_limit:
-                                    return True
-                    return False
+        def get_start_end_index_cut_for_test(df, threshold):
+            # df : 训练集轨迹对应的df
+            # 用于apply处理
+            # 先处理从头开始的
+            def limit_try(up_limit, try_i, start=False, end=False):
+                nonlocal lon, lat, distance, i
+                def try_dist(lon, lat, try_i):
+                    try_lon, try_lat = df.loc[try_i][['longitude', 'latitude']].tolist()
+                    return haversine(lon, lat, try_lon, try_lat)
+                if distance > up_limit:
+                    if start == True:
+                        if i + try_i < df.index[-1]:
+                            if try_dist(lon, lat, i + try_i) < up_limit:
+                                return True
+                    else:
+                        if i - try_i > start_index:
+                            if try_dist(lon, lat, i - try_i) < up_limit:
+                                return True
+                return False
+            
+            start_index = -1
+            i = df.index[0]
+            while i < df.index[-1]:
+            # for i in range(df.index[0], df.index[-1]):
+                lon, lat = df.loc[i][['longitude', 'latitude']].tolist()
+                distance = haversine(lon, lat, test_start_lon, test_start_lat)
+                # 用于加速
+                if limit_try(2000,400,start=True):
+                    i += 400
+                    continue
+                if limit_try(1000,200,start=True):
+                    i += 200
+                    continue
+                if limit_try(1000,100,start=True):
+                    i += 100
+                    continue
+                if limit_try(1000,50,start=True):
+                    i += 50
+                    continue
+                if limit_try(1000,30,start=True):
+                    i += 30
+                    continue
+                if limit_try(1000,20,start=True):
+                    i += 20
+                    continue
+                if limit_try(200,10,start=True):
+                    i += 10
+                    continue
+                if limit_try(200,5,start=True):
+                    i += 5
+                    continue
+                if limit_try(200,2,start=True):
+                    i += 2
+                    continue
+                if distance <= threshold:
+                    start_index = i
+                    break
                 
+                i += 1
+            if start_index < df.index[-1] - 1 or start_index != -1:
+                pass
+            else:
                 start_index = -1
-                i = df.index[0]
-                while i < df.index[-1]:
-                # for i in range(df.index[0], df.index[-1]):
+                # ! 结束
+            
+            end_index = -1
+            if start_index != -1:
+                i = df.index[-1]
+                while i > start_index:
+                # for i in range(df.index[-1], start_index, -1):
                     lon, lat = df.loc[i][['longitude', 'latitude']].tolist()
-                    distance = haversine(lon, lat, test_start_lon, test_start_lat)
+                    distance = haversine(lon, lat, test_end_lon, test_end_lat)
                     # 用于加速
-                    if limit_try(2000,400,start=True):
-                        i += 400
+                    if limit_try(2000,400,end=True):
+                        i -= 400
                         continue
-                    if limit_try(1000,200,start=True):
-                        i += 200
+                    if limit_try(1000,200,end=True):
+                        i -= 200
                         continue
-                    if limit_try(1000,100,start=True):
-                        i += 100
+                    if limit_try(1000,100,end=True):
+                        i -= 100
                         continue
-                    if limit_try(1000,50,start=True):
-                        i += 50
+                    if limit_try(1000,50,end=True):
+                        i -= 50
                         continue
-                    if limit_try(1000,30,start=True):
-                        i += 30
+                    if limit_try(1000,30,end=True):
+                        i -= 30
                         continue
-                    if limit_try(1000,20,start=True):
-                        i += 20
+                    if limit_try(1000,20,end=True):
+                        i -= 20
                         continue
-                    if limit_try(200,10,start=True):
-                        i += 10
+                    if limit_try(200,10,end=True):
+                        i -= 10
                         continue
-                    if limit_try(200,5,start=True):
-                        i += 5
+                    if limit_try(200,5,end=True):
+                        i -= 5
                         continue
-                    if limit_try(200,2,start=True):
-                        i += 2
+                    if limit_try(200,2,end=True):
+                        i -= 2
                         continue
-                    if distance <= threshold:
-                        start_index = i
-                        break
                     
-                    i += 1
-                if start_index < df.index[-1] - 1 or start_index != -1:
+                    if distance <= threshold:
+                        end_index = i
+                        break
+                    i -= 1
+                if end_index > df.index[0]+1 or end_index != -1 or end_index > start_index +1:
                     pass
                 else:
-                    start_index = -1
-                    # ! 结束
-                
-                end_index = -1
-                if start_index != -1:
-                    i = df.index[-1]
-                    while i > start_index:
-                    # for i in range(df.index[-1], start_index, -1):
-                        lon, lat = df.loc[i][['longitude', 'latitude']].tolist()
-                        distance = haversine(lon, lat, test_end_lon, test_end_lat)
-                        # 用于加速
-                        if limit_try(2000,400,end=True):
-                            i -= 400
-                            continue
-                        if limit_try(1000,200,end=True):
-                            i -= 200
-                            continue
-                        if limit_try(1000,100,end=True):
-                            i -= 100
-                            continue
-                        if limit_try(1000,50,end=True):
-                            i -= 50
-                            continue
-                        if limit_try(1000,30,end=True):
-                            i -= 30
-                            continue
-                        if limit_try(1000,20,end=True):
-                            i -= 20
-                            continue
-                        if limit_try(200,10,end=True):
-                            i -= 10
-                            continue
-                        if limit_try(200,5,end=True):
-                            i -= 5
-                            continue
-                        if limit_try(200,2,end=True):
-                            i -= 2
-                            continue
-                        
-                        if distance <= threshold:
-                            end_index = i
-                            break
-                        i -= 1
-                    if end_index > df.index[0]+1 or end_index != -1 or end_index > start_index +1:
-                        pass
-                    else:
-                        end_index = -1
-                    # ! 结束
-                
-                # ! 打标问题
-                if start_index != -1 and end_index != -1:
-                    use_df_label = df.loc[start_index:end_index]
-                    # 最后一行数据的时间戳为对应train轨迹的到港时间戳
-                    use_df_label.loc[end_index, 'timestamp'] = df.loc[df.index[-1], 'timestamp']
-                    return [use_df_label]
-                else:
-                    return [pd.DataFrame(columns=df.columns)]
+                    end_index = -1
+                # ! 结束
+            
+            # ! 打标问题
+            if start_index != -1 and end_index != -1:
+                use_df_label = df.loc[start_index:end_index]
+                # 最后一行数据的时间戳为对应train轨迹的到港时间戳
+                use_df_label.loc[end_index, 'timestamp'] = df.loc[df.index[-1], 'timestamp']
+                return [use_df_label]
+            else:
+                return [pd.DataFrame(columns=df.columns)]
         if for_parallel == False:
             use_df = match_df.groupby('loadingOrder').apply(
                 lambda x:while_for_cut_multi(x)).tolist()
