@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-25 22:50:49
+@LastEditTime: 2020-06-25 23:25:58
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -111,7 +111,7 @@ class CutTrace(object):
         return len(result)
     
     # ! 添加处理轨迹和test之trace数据
-    def cut_trace_for_test(self, test_df, match_df, distance_threshold=80, for_traj=False):
+    def cut_trace_for_test(self, test_df, match_df, distance_threshold=80, for_parallel=True):
         """根据test的df(包含lon、lat数据，即轨迹)，对match_df进行切割
         该函数针对的是df数据，而不是轨迹数据(np.array)
         思路是将train中轨迹，从头从尾分别开始，计算每个点到test头尾点的距离，符合某个阈值时停止
@@ -119,7 +119,7 @@ class CutTrace(object):
             test_df (pd.DataFrame): test的df，该df应该只包含一个订单，且已经排序，和match_df
             match_df (pd.DataFrame): 针对test匹配到的train的df数据
             distance_threshold (int, optional): 到首尾节点的距离阈值. Defaults to 80.
-            for_traj (Bool): 为True时不使用多线程，为False时使用多线程
+            for_parallel (Bool): 为True时使用多线程，为False时不使用多线程
         Returns:
             [pd.DataFrame]: 切割后的df数据，index已经重设，可能为空，最后一条用切割前最后一条代替以求
                 Label，倒数第二条为切割后train最后一个时间戳
@@ -264,8 +264,7 @@ class CutTrace(object):
                     return [use_df_label]
                 else:
                     return [pd.DataFrame(columns=df.columns)]
-            
-        if for_traj == True:
+        if for_parallel == False:
             use_df = match_df.groupby('loadingOrder').apply(
                 lambda x:while_for_cut_multi(x)).tolist()
         else:
@@ -280,6 +279,7 @@ class CutTrace(object):
 
         return use_df_
     
+    # 该部分有大量错误需要修改！
     # def cut_traj_for_test(self, test_traj, match_traj, distance_threshold=80, for_traj=True):
     #     """对cut_trace_for_test函数的包装，用于处理traj数据(np.array格式)
 

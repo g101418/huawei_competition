@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-25 23:15:32
+@LastEditTime: 2020-06-25 23:26:24
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -154,7 +154,8 @@ class TrajectoryMatching(object):
 
         Args:
             df (pd.DataFrame): 按group划分后的数据集
-
+            for_traj (Bool): 如果是True，则label为train全程时间，如
+                果是False，则label为剪切后最后的时间戳到到港时间
         Returns:
             traj_list, label (np.array, ): 轨迹列表(n行2列的GPS轨迹列表)，标签
         """
@@ -242,7 +243,7 @@ class TrajectoryMatching(object):
         result = self.get_related_df(start_port, end_port)[0]
         if result is None:
             return 0
-        return result.loadingOrder.nunique() == 0
+        return result.loadingOrder.nunique()
 
     def get_final_label(self, order, trace, traj, test_data):
         """输入某一订单的订单名称、trace、轨迹，得到最相似轨迹的label并返回
@@ -364,7 +365,7 @@ class TrajectoryMatching(object):
         match_df = self.match_df_dict[trace_str]
         
         cutted_df = self.__cutTrace.cut_trace_for_test(
-            df, match_df, self.cut_distance_threshold, for_traj=True)
+            df, match_df, self.cut_distance_threshold, for_parallel=False)
         
         if cutted_df.loadingOrder.nunique() == 0:
             return [None, None, None]
@@ -381,96 +382,6 @@ class TrajectoryMatching(object):
         traj_list = list(map(lambda x: np.array(x), traj_list))
         
         return [order_list, label_list, traj_list]
-
-    
-    # TODO traj打标
-
-# if __name__ == "__main__":
-#     TRAIN_GPS_PATH = './data/_train_drift.csv'
-#     train_data = pd.read_csv(TRAIN_GPS_PATH)
-
-#     TEST_GPS_PATH = './data/A_testData0531.csv'
-#     test_data = pd.read_csv(TEST_GPS_PATH)
-
-#     pandarallel.initialize()
-
-#     trajectoryMatching = TrajectoryMatching(
-#         train_data, geohash_precision=5, cut_distance_threshold=60, metric='sspd')
-
-#     # 该函数返回test_data集中相关的所有：订单、trace、航线(是test本身的航线)
-#     order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(
-#         test_data)
-#     # ! 此处得到的trace做了map映射
-
-#     # 找到可以匹配到的order，该列表用于记录匹配到的下标，没有包含在内的下标是一条train中航线都匹配不到的
-#     # TODO 并行化
-#     matched_index_list = []
-#     for i in range(len(order_list)):
-#         length = trajectoryMatching.get_related_traj_len(
-#             trace_list[i][0], trace_list[i][1])
-#         if length != 0:
-#             matched_index_list.append(i)
-
-#     matched_order_list, matched_trace_list, matched_traj_list = [], [], []
-#     for i in matched_index_list:
-#         matched_order_list.append(order_list[i])
-#         matched_trace_list.append(trace_list[i])
-#         matched_traj_list.append(traj_list[i])
-
-#     matched_test_data = pd.DataFrame(
-#         {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
-    
-    
-#     final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
-#         lambda x: trajectoryMatching.parallel_get_label(x))
-#     final_order_label = final_order_label.tolist()
-#     # ! 此处可能返回None, None
-    
-    
-#     with open('./final_order_label_0621.txt', 'w')as f:
-#         f.write(str(final_order_label))
-
-#     final_order_label_dict = {}
-#     for i in range(len(final_order_label)):
-#         final_order_label_dict[final_order_label[i][0]] = final_order_label[i][2]
-
-#     with open('final_order_label_dict.txt', 'w')as f:
-#         f.write(str(final_order_label_dict))
-
-
-# if __name__ == "__main__":
-#     TRAIN_GPS_PATH = './data/_train_drift.csv'
-#     train_data = pd.read_csv(TRAIN_GPS_PATH)
-
-#     TEST_GPS_PATH = './data/A_testData0531.csv'
-#     test_data = pd.read_csv(TEST_GPS_PATH)
-
-#     pandarallel.initialize()
-
-#     # !此处cutting_proportion为切割比例，0.5意为前50%
-#     trajectoryMatching = TrajectoryMatching(
-#         train_data, geohash_precision=5, cutting_proportion=0.5, metric='dtw')
-
-#     order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(
-#         test_data)
-#     # ! 此处得到的trace做了map映射
-
-#     # 找到可以匹配到的order
-#     matched_index_list = []
-#     for i in range(len(order_list)):
-#         length = trajectoryMatching.get_related_traj_len(
-#             trace_list[i][0], trace_list[i][1])
-#         if length != 0:
-#             matched_index_list.append(i)
-
-#     matched_df_list = []
-#     for i in matched_index_list:
-#         match_df = trajectoryMatching.get_related_df(
-#             trace_list[i][0], trace_list[i][1])
-#         matched_df_list.append(match_df)
-
-#     # ! 此处得到了matched_df_list，每一行即对应的训练集
-
 
 
 if __name__ == "__main__":
@@ -490,7 +401,7 @@ if __name__ == "__main__":
     # 匹配到的订单下标
     matched_index_list = []
     for i in range(len(order_list)):
-        length = trajectoryMatching.get_related_traj_len(
+        length = trajectoryMatching.get_related_df_len(
             trace_list[i][0], trace_list[i][1])
         if length != 0:
             matched_index_list.append(i)
