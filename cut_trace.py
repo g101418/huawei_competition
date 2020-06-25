@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-25 23:47:50
+@LastEditTime: 2020-06-26 00:26:34
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -173,37 +173,18 @@ class CutTrace(object):
                 lon, lat = df.loc[i][['longitude', 'latitude']].tolist()
                 distance = haversine(lon, lat, test_start_lon, test_start_lat)
                 # 用于加速
-                if limit_try(2000,400,start=True):
-                    i += 400
-                    continue
-                if limit_try(1000,200,start=True):
-                    i += 200
-                    continue
-                if limit_try(1000,100,start=True):
-                    i += 100
-                    continue
-                if limit_try(1000,50,start=True):
-                    i += 50
-                    continue
-                if limit_try(1000,30,start=True):
-                    i += 30
-                    continue
-                if limit_try(1000,20,start=True):
-                    i += 20
-                    continue
-                if limit_try(200,10,start=True):
-                    i += 10
-                    continue
-                if limit_try(200,5,start=True):
-                    i += 5
-                    continue
-                if limit_try(200,2,start=True):
-                    i += 2
-                    continue
+                if limit_try(2000,400,start=True): i += 400; continue;
+                if limit_try(1000,200,start=True): i += 200; continue;
+                if limit_try(1000,100,start=True): i += 100; continue;
+                if limit_try(1000,50,start=True): i += 50; continue;
+                if limit_try(1000,30,start=True): i += 30; continue;
+                if limit_try(1000,20,start=True): i += 20; continue;
+                if limit_try(200,10,start=True): i += 10; continue;
+                if limit_try(200,5,start=True): i += 5; continue;
+                if limit_try(200,2,start=True): i += 2; continue;
                 if distance <= threshold:
                     start_index = i
                     break
-                
                 i += 1
             if start_index < df.index[-1] - 1 or start_index != -1:
                 pass
@@ -219,33 +200,15 @@ class CutTrace(object):
                     lon, lat = df.loc[i][['longitude', 'latitude']].tolist()
                     distance = haversine(lon, lat, test_end_lon, test_end_lat)
                     # 用于加速
-                    if limit_try(2000,400,end=True):
-                        i -= 400
-                        continue
-                    if limit_try(1000,200,end=True):
-                        i -= 200
-                        continue
-                    if limit_try(1000,100,end=True):
-                        i -= 100
-                        continue
-                    if limit_try(1000,50,end=True):
-                        i -= 50
-                        continue
-                    if limit_try(1000,30,end=True):
-                        i -= 30
-                        continue
-                    if limit_try(1000,20,end=True):
-                        i -= 20
-                        continue
-                    if limit_try(200,10,end=True):
-                        i -= 10
-                        continue
-                    if limit_try(200,5,end=True):
-                        i -= 5
-                        continue
-                    if limit_try(200,2,end=True):
-                        i -= 2
-                        continue
+                    if limit_try(2000,400,end=True): i -= 400; continue;
+                    if limit_try(1000,200,end=True): i -= 200; continue;
+                    if limit_try(1000,100,end=True): i -= 100; continue;
+                    if limit_try(1000,50,end=True): i -= 50; continue;
+                    if limit_try(1000,30,end=True): i -= 30; continue;
+                    if limit_try(1000,20,end=True): i -= 20; continue;
+                    if limit_try(200,10,end=True): i -= 10; continue;
+                    if limit_try(200,5,end=True): i -= 5; continue;
+                    if limit_try(200,2,end=True): i -= 2; continue;
                     
                     if distance <= threshold:
                         end_index = i
