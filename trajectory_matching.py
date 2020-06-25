@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-25 21:08:05
+@LastEditTime: 2020-06-25 23:15:32
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -27,7 +27,6 @@ class TrajectoryMatching(object):
     def __init__(self, 
                  train_data, 
                  geohash_precision=4, 
-                 cutting_proportion=-1, 
                  metric="sspd",
                  cut_distance_threshold=-1):
         super().__init__()
@@ -36,14 +35,13 @@ class TrajectoryMatching(object):
         self.match_traj_dict = {}
         self.match_df_dict = {}
         self.__geohash_precision = geohash_precision
-        # self.__cutting_proportion = cutting_proportion
         self.__cutting_proportion = -1 # 按比例切割暂时不用
         self.__metric = metric
         self.cut_distance_threshold = cut_distance_threshold
 
     def __get_traj_order_label(self, start_port, end_port):
         """按照起止港得到相关训练集
-        确保数据集已经排序
+        确保数据集已经排序。如果没有起止港相关数据，则返回 None, None, None
         Args:
             start_port (str): 起始港名称
             end_port (str): 终止港名称
@@ -73,7 +71,7 @@ class TrajectoryMatching(object):
     # TODO 函数：返回相关训练集，并重新排序，写入字典
     def __get_match_df(self, start_port, end_port, reset_index=True, for_df=False):
         """得到与trace相关的训练集，训练集可选是否排序
-
+        如果没有相关df，则返回None
         Args:
             start_port (str): 起始港
             end_port (str): 终点港
@@ -85,7 +83,7 @@ class TrajectoryMatching(object):
 
         start_port = portsUtils.get_mapped_port_name(start_port)[0]
         end_port = portsUtils.get_mapped_port_name(end_port)[0]
-
+        # TODO 删除__cutting_proportion相关
         if for_df == True and self.__cutting_proportion > 0:
             result = self.__cutTrace.get_use_indexs(
                 start_port, end_port, line=False)
@@ -107,16 +105,21 @@ class TrajectoryMatching(object):
 
         return match_df
 
-    def __get_label(self, df):
+    def __get_label(self, df, for_traj=True):
         """得到标签列，即时间差
 
         Args:
             df (pd.DataFrame): 按group划分后的数据集
-
+            for_traj (Bool): 如果是True，则label为train全程时间，如
+                果是False，则label为剪切后最后的时间戳到到港时间
         Returns:
             label (): 时间差
         """
-        first_time = pd.to_datetime(df.loc[df.index[0], 'timestamp'])
+        if for_traj == True:
+            first_time = pd.to_datetime(df.loc[df.index[0], 'timestamp'])
+        else:
+            first_time = pd.to_datetime(df.loc[df.index[-2], 'timestamp'])
+            
         final_time = pd.to_datetime(df.loc[df.index[-1], 'timestamp'])
         label = final_time - first_time
 
@@ -146,7 +149,7 @@ class TrajectoryMatching(object):
 
         return traj_list
 
-    def __get_traj_list_label(self, df):
+    def __get_traj_list_label(self, df, for_traj=True):
         """得到轨迹列表和标签
 
         Args:
@@ -155,7 +158,11 @@ class TrajectoryMatching(object):
         Returns:
             traj_list, label (np.array, ): 轨迹列表(n行2列的GPS轨迹列表)，标签
         """
-        label = self.__get_label(df)
+        if for_traj == True:
+            label = self.__get_label(df)
+        else:
+            label = self.__get_label(df, for_traj=False)
+        
         traj_list = self.__get_traj_list(df)
 
         return [traj_list, label]
@@ -210,11 +217,32 @@ class TrajectoryMatching(object):
         Returns:
             [int]: 相关轨迹的数量
         """
+        start_port = portsUtils.get_mapped_port_name(start_port)[0]
+        end_port = portsUtils.get_mapped_port_name(end_port)[0]
+        
         result = self.get_related_traj(start_port, end_port)[0]
         if result is None:
             return 0
         else:
             return len(result)
+        
+    def get_related_df_len(self, start_port, end_port):
+        """得到trace相关df中订单的数量
+
+        Args:
+            start_port (str): 起始港名称
+            end_port (str): 终止港名称
+
+        Returns:
+            [int]: 相关df中订单的数量
+        """
+        start_port = portsUtils.get_mapped_port_name(start_port)[0]
+        end_port = portsUtils.get_mapped_port_name(end_port)[0]
+        
+        result = self.get_related_df(start_port, end_port)[0]
+        if result is None:
+            return 0
+        return result.loadingOrder.nunique() == 0
 
     def get_final_label(self, order, trace, traj, test_data):
         """输入某一订单的订单名称、trace、轨迹，得到最相似轨迹的label并返回
@@ -225,7 +253,7 @@ class TrajectoryMatching(object):
             traj (np.array): test的轨迹
 
         Returns:
-            order, label () :订单名称、时间差
+            order, label (str, pd.Timedelta) :订单名称、时间差
         """
         try:
             if self.cut_distance_threshold < 0:
@@ -235,26 +263,9 @@ class TrajectoryMatching(object):
                 if train_label_list is None:
                     return None, None
             else:
-                # TODO将match整合进这里
                 train_order_list, train_label_list, train_traj_list = self.modify_traj_label(test_data)
                 if train_label_list is None or len(train_label_list) == 0:
                     return None, None
-                # test_data
-                # if order in self.match_traj_dict:
-                #     train_order_list, train_label_list, train_traj_list = self.match_traj_dict[order]
-                #     if train_label_list is None:
-                #         return None, None
-                # else:
-                #     return None, None
-            
-            # # TODO 按照test轨迹切割首尾
-            # if self.cut_distance_threshold > 0:
-            #     train_traj_list = self.__cutTrace.cut_traj_for_test(
-            #         traj, train_traj_list, self.cut_distance_threshold, for_traj=True)
-
-            #     if len(train_traj_list) == 0:
-            #         return None, None
-        
         
             cdist = list(tdist.cdist(
                 [traj], train_traj_list, metric=self.__metric)[0])
@@ -311,7 +322,8 @@ class TrajectoryMatching(object):
 
     def get_related_df(self, start_port, end_port):
         """引入字典，根据trace得到相关DataFrame
-        输入参数应该已经通过map映射，即使用get_test_trace()函数得到的数据
+        输入参数应该已经通过map映射，即使用get_test_trace()函数得到的数据。
+        如果没有相关df，则返回None
         Args:
             start_port (str): 起始港名称
             end_port (str): 终止港名称
@@ -333,21 +345,7 @@ class TrajectoryMatching(object):
                 return match_df
             else:
                 return match_df
-            
-    def __get_modified_label(self, df):
-        first_time = pd.to_datetime(df.loc[df.index[-2], 'timestamp'])
-        final_time = pd.to_datetime(df.loc[df.index[-1], 'timestamp'])
-        label = final_time - first_time
 
-        return label
-        
-        
-    def __get_modified_traj_label(self, df):
-        # 得到label、traj
-        label = self.__get_modified_label(df)
-        traj_list = self.__get_traj_list(df)
-        
-        return [traj_list, label]
             
     def modify_traj_label(self, df):
         # df为test的中的部分，只有单个订单
@@ -371,11 +369,8 @@ class TrajectoryMatching(object):
         if cutted_df.loadingOrder.nunique() == 0:
             return [None, None, None]
         
-        # cutted_df.groupby('loadingOrder').apply(self.__get_modified_traj_label)
-        # match_traj_dict
-        
         traj_list_label_series = cutted_df.groupby('loadingOrder')[[
-            'timestamp', 'longitude', 'latitude']].apply(lambda x: self.__get_modified_traj_label(x))
+            'timestamp', 'longitude', 'latitude']].apply(lambda x: self.__get_traj_list_label(x, for_traj=False))
         traj_list_label_series = np.array(traj_list_label_series.tolist())
         
         order_list = cutted_df.loadingOrder.unique().tolist()
@@ -385,8 +380,6 @@ class TrajectoryMatching(object):
         traj_list = list(traj_list_label_series[:, 0])
         traj_list = list(map(lambda x: np.array(x), traj_list))
         
-        # self.match_traj_dict[order] = [order_list, label_list, traj_list]
-
         return [order_list, label_list, traj_list]
 
     
