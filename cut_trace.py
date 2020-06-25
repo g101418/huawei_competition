@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-26 00:26:34
+@LastEditTime: 2020-06-26 00:29:29
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -243,7 +243,7 @@ class CutTrace(object):
 
         return use_df_
     
-    # 该部分有大量错误需要修改！
+    # ! 该部分有大量错误需要修改！
     # def cut_traj_for_test(self, test_traj, match_traj, distance_threshold=80, for_traj=True):
     #     """对cut_trace_for_test函数的包装，用于处理traj数据(np.array格式)
 
