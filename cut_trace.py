@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-26 10:18:37
+@LastEditTime: 2020-06-26 11:45:18
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -76,15 +76,20 @@ class CutTrace(object):
                     if end_second < 0:
                         j -= 1
                         continue
+                    
                     if start_first >= end_second:
                         break
+                    if end_first > 0 and start_first >= end_first:
+                        break
                     
-                    if end_first > 0:
+                    if end_first > 0 and end_second > 0:
+                        start_index, end_index = start_first, (end_first+end_second)//2
+                    elif end_first > 0:
                         start_index, end_index = start_first, end_first
                     else:
                         start_index, end_index = start_first, end_second
 
-                    start_index, end_index = start_first, end_second
+                    # start_index, end_index = start_first, end_second
                     break
 
                 if start_index == -1 or end_index == -1:
@@ -130,17 +135,29 @@ class CutTrace(object):
         
         def while_for_cut_multi(df):
             # 用于循环迭代，依此增加距离阈值以匹配
-            cutted_df = get_start_end_index_cut_for_test(df, threshold=distance_threshold)[0]
+            nonlocal distance_threshold
+            distance_threshold_ = distance_threshold
+            
+            cutted_df = get_start_end_index_cut_for_test(df, threshold=distance_threshold_)[0]
             
             cut_multi = 2.0
             while len(cutted_df) == 0:
-                if distance_threshold * cut_multi < 200:
-                    cutted_df = get_start_end_index_cut_for_test(
-                        df, threshold=distance_threshold * cut_multi)[0]
-                    cut_multi += 1.0
+                if distance_threshold_ < 5:
+                    if distance_threshold_ * cut_multi < 5:
+                        cutted_df = get_start_end_index_cut_for_test(
+                            df, threshold=distance_threshold_ * cut_multi)[0]
+                        cut_multi += 1.0
+                    else:
+                        distance_threshold_ = 30
+                        cut_multi = 1.0
                 else:
-                    break
-                
+                    if distance_threshold_ * cut_multi < 200:
+                        cutted_df = get_start_end_index_cut_for_test(
+                            df, threshold=distance_threshold_ * cut_multi)[0]
+                        cut_multi += 1.0
+                    else:
+                        break
+                    
             if len(cutted_df) != 0:
                 return [cutted_df]
             else:
@@ -182,6 +199,7 @@ class CutTrace(object):
                 if limit_try(200,10,start=True): i += 10; continue;
                 if limit_try(200,5,start=True): i += 5; continue;
                 if limit_try(200,2,start=True): i += 2; continue;
+                if limit_try(threshold,10,start=True): i += 10; continue;
                 if limit_try(threshold,5,start=True): i += 5; continue;
                 if limit_try(threshold,2,start=True): i += 2; continue;
                 if distance <= threshold:
@@ -211,6 +229,7 @@ class CutTrace(object):
                     if limit_try(200,10,end=True): i -= 10; continue;
                     if limit_try(200,5,end=True): i -= 5; continue;
                     if limit_try(200,2,end=True): i -= 2; continue;
+                    if limit_try(threshold,10,end=True): i -= 10; continue;
                     if limit_try(threshold,5,end=True): i -= 5; continue;
                     if limit_try(threshold,2,end=True): i -= 2; continue;
                     if distance <= threshold:

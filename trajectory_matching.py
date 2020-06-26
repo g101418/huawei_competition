@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-26 07:18:12
+@LastEditTime: 2020-06-26 11:29:27
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -396,7 +396,7 @@ if __name__ == "__main__":
     pandarallel.initialize()
 
     trajectoryMatching = TrajectoryMatching(
-        train_data, geohash_precision=5, cut_distance_threshold=30, metric='sspd')
+        train_data, geohash_precision=5, cut_distance_threshold=1.3, metric='sspd')
     
     order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(test_data)
     
