@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-25 23:31:55
+@LastEditTime: 2020-06-26 07:18:12
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -267,12 +267,14 @@ class TrajectoryMatching(object):
                 train_order_list, train_label_list, train_traj_list = self.modify_traj_label(test_data)
                 if train_label_list is None or len(train_label_list) == 0:
                     return None, None
-        
+        except:
+            print('error:', order, 'modify_traj_label')
+        try:
             cdist = list(tdist.cdist(
                 [traj], train_traj_list, metric=self.__metric)[0])
             min_traj_index = cdist.index(min(cdist))
         except:
-            print('error:', order)
+            print('error:', order, 'tdist.cdist')
             return None,None
 
         return train_order_list[min_traj_index], train_label_list[min_traj_index]
@@ -367,7 +369,7 @@ class TrajectoryMatching(object):
         cutted_df = self.__cutTrace.cut_trace_for_test(
             df, match_df, self.cut_distance_threshold, for_parallel=False)
         
-        if cutted_df.loadingOrder.nunique() == 0:
+        if len(cutted_df) == 0:
             return [None, None, None]
         
         traj_list_label_series = cutted_df.groupby('loadingOrder')[[
