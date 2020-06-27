@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-26 11:45:18
+@LastEditTime: 2020-06-26 23:42:45
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -14,8 +14,6 @@ import numpy as np
 
 class CutTrace(object):
     """用于切割轨迹
-
-    Args:
 
     """
 

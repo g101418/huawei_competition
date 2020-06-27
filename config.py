@@ -18,7 +18,7 @@ class Config:
             'vesselMMSI', 'speed', 'direction', 'vesselNextport', 'vesselNextportETA',
             'vesselStatus', 'vesselDatasource', 'TRANSPORT_TRACE'
         ]
-        self.orders_ports_dict_filename='./tool_file/orders_ports_dict.txt'
+        # self.orders_ports_dict_filename='./tool_file/orders_ports_dict.txt'
         self.port_map_dict_filename='./tool_file/port_map_dict.txt'
         # self.all_port_points_filename='./tool_file/all_port_points.txt'
         self.all_port_points_filename='./tool_file/new_port_points.txt'
