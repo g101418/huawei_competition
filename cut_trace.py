@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-26 23:42:45
+@LastEditTime: 2020-06-27 15:16:02
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -66,7 +66,7 @@ class CutTrace(object):
                 start_index, end_index = -1, -1
                 i, j = 0, len(end_indexs)-1
                 while i < len(start_indexs) and j >= 0 and start_indexs[i] < end_indexs[j]:
-                    start_first, _ = self.orders_ports_dict[key][start_indexs[i]][1]
+                    start_first, start_second = self.orders_ports_dict[key][start_indexs[i]][1]
                     if start_first < 0:
                         i += 1
                         continue
@@ -79,13 +79,25 @@ class CutTrace(object):
                         break
                     if end_first > 0 and start_first >= end_first:
                         break
+                    if start_second > 0 and end_first > 0 and start_second >= end_first:
+                        break
+                    
                     
                     if end_first > 0 and end_second > 0:
-                        start_index, end_index = start_first, (end_first+end_second)//2
+                        if start_second > 0:
+                            start_index, end_index = (start_first+start_second)//2, (end_first+end_second)//2
+                        else:
+                            start_index, end_index = start_first, (end_first+end_second)//2
                     elif end_first > 0:
-                        start_index, end_index = start_first, end_first
+                        if start_second > 0:
+                            start_index, end_index = (start_first+start_second)//2, end_first
+                        else:
+                            start_index, end_index = start_first, end_first
                     else:
-                        start_index, end_index = start_first, end_second
+                        if start_second > 0:
+                            start_index, end_index = (start_first+start_second)//2, end_second
+                        else:
+                            start_index, end_index = start_first, end_second
 
                     # start_index, end_index = start_first, end_second
                     break
@@ -187,6 +199,11 @@ class CutTrace(object):
             # for i in range(df.index[0], df.index[-1]):
                 lon, lat = df.loc[i][['longitude', 'latitude']].tolist()
                 distance = haversine(lon, lat, test_start_lon, test_start_lat)
+                
+                if distance <= threshold:
+                    start_index = i
+                    break
+                i += 1
                 # 用于加速
                 if limit_try(2000,400,start=True): i += 400; continue;
                 if limit_try(1000,200,start=True): i += 200; continue;
@@ -200,16 +217,12 @@ class CutTrace(object):
                 if limit_try(threshold,10,start=True): i += 10; continue;
                 if limit_try(threshold,5,start=True): i += 5; continue;
                 if limit_try(threshold,2,start=True): i += 2; continue;
-                if distance <= threshold:
-                    start_index = i
-                    break
-                i += 1
+                
             if start_index < df.index[-1] - 1 or start_index != -1:
                 pass
             else:
                 start_index = -1
                 # ! 结束
-            
             end_index = -1
             if start_index != -1:
                 i = df.index[-1]
@@ -217,6 +230,10 @@ class CutTrace(object):
                 # for i in range(df.index[-1], start_index, -1):
                     lon, lat = df.loc[i][['longitude', 'latitude']].tolist()
                     distance = haversine(lon, lat, test_end_lon, test_end_lat)
+                    if distance <= threshold:
+                        end_index = i
+                        break
+                    i -= 1
                     # 用于加速
                     if limit_try(2000,400,end=True): i -= 400; continue;
                     if limit_try(1000,200,end=True): i -= 200; continue;
@@ -230,10 +247,7 @@ class CutTrace(object):
                     if limit_try(threshold,10,end=True): i -= 10; continue;
                     if limit_try(threshold,5,end=True): i -= 5; continue;
                     if limit_try(threshold,2,end=True): i -= 2; continue;
-                    if distance <= threshold:
-                        end_index = i
-                        break
-                    i -= 1
+                    
                 if end_index > df.index[0]+1 or end_index != -1 or end_index > start_index +1:
                     pass
                 else:
