@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-26 11:29:27
+@LastEditTime: 2020-06-27 15:55:50
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -15,6 +15,9 @@ import geohash
 import itertools
 
 from pandarallel import pandarallel
+
+import warnings
+warnings.filterwarnings('ignore')
 
 
 class TrajectoryMatching(object):
@@ -390,7 +393,7 @@ if __name__ == "__main__":
     TRAIN_GPS_PATH = './data/_train_drift.csv'
     train_data = pd.read_csv(TRAIN_GPS_PATH)
 
-    TEST_GPS_PATH = './data/A_testData0531.csv'
+    TEST_GPS_PATH = './data/new_test_data_B.csv'
     test_data = pd.read_csv(TEST_GPS_PATH)
 
     pandarallel.initialize()
