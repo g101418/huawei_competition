@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-29 17:22:26
+@LastEditTime: 2020-06-29 22:53:14
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -15,6 +15,8 @@ import geohash
 import itertools
 
 from pandarallel import pandarallel
+
+import heapq
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -272,6 +274,7 @@ class TrajectoryMatching(object):
                     return None, None
         except:
             print('error:', order, 'modify_traj_label')
+            
         try:
             cdist = list(tdist.cdist(
                 [traj], train_traj_list, metric=self.__metric)[0])
@@ -279,8 +282,17 @@ class TrajectoryMatching(object):
         except:
             print('error:', order, 'tdist.cdist')
             return None,None
+        
+        if len(train_label_list) > 3:
+            min_traj_index_3 = list(map(lambda x:cdist.index(x), heapq.nsmallest(3, cdist)))
+            
+            mean_label_seconds = np.mean(list(map(lambda x: x.total_seconds(), list(np.array(train_label_list)[min_traj_index_3]))))
 
-        return train_order_list[min_traj_index], train_label_list[min_traj_index]
+            mean_label = pd.Timedelta(seconds=mean_label_seconds)
+        else:
+            mean_label = train_label_list[min_traj_index]
+            
+        return train_order_list[min_traj_index], mean_label
 
     def parallel_get_label(self, df, test_data):
         """用于并行化处理，得到order及label
