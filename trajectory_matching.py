@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-29 22:53:14
+@LastEditTime: 2020-06-29 23:05:00
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -381,21 +381,25 @@ class TrajectoryMatching(object):
         
         match_df = self.match_df_dict[trace_str]
         
+        if len(match_df) == 0:
+            return [None, None, None]
+        
         # ! 考虑船号
         try:
             match_df_ = match_df[match_df['vesselMMSI']==test_data.vesselMMSI.unique().tolist()[0]]
             
-            if len(match_df_) == 0 and len(match_df) != 0:
-                match_df_ = match_df
-            elif len(match_df_) == 0 and len(match_df) == 0:
-                return [None, None, None]
-            
-            match_df = match_df_.reset_index(drop=True)
+            if len(match_df_) != 0:
+                match_df_ = match_df_.reset_index(drop=True)
+                cutted_df = self.__cutTrace.cut_trace_for_test(
+                    df, match_df_, self.cut_distance_threshold, for_parallel=False)
+                if len(cutted_df) == 0:
+                    cutted_df = self.__cutTrace.cut_trace_for_test(
+                        df, match_df, self.cut_distance_threshold, for_parallel=False)
+            else:
+                cutted_df = self.__cutTrace.cut_trace_for_test(
+                    df, match_df, self.cut_distance_threshold, for_parallel=False)
         except:
             print('船号匹配处错误，test_order:',order)
-        
-        cutted_df = self.__cutTrace.cut_trace_for_test(
-            df, match_df, self.cut_distance_threshold, for_parallel=False)
         
         if len(cutted_df) == 0:
             return [None, None, None]
