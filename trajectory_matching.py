@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-27 15:55:50
+@LastEditTime: 2020-06-29 17:22:26
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -369,6 +369,19 @@ class TrajectoryMatching(object):
         
         match_df = self.match_df_dict[trace_str]
         
+        # ! 考虑船号
+        try:
+            match_df_ = match_df[match_df['vesselMMSI']==test_data.vesselMMSI.unique().tolist()[0]]
+            
+            if len(match_df_) == 0 and len(match_df) != 0:
+                match_df_ = match_df
+            elif len(match_df_) == 0 and len(match_df) == 0:
+                return [None, None, None]
+            
+            match_df = match_df_.reset_index(drop=True)
+        except:
+            print('船号匹配处错误，test_order:',order)
+        
         cutted_df = self.__cutTrace.cut_trace_for_test(
             df, match_df, self.cut_distance_threshold, for_parallel=False)
         
@@ -390,8 +403,11 @@ class TrajectoryMatching(object):
 
 
 if __name__ == "__main__":
-    TRAIN_GPS_PATH = './data/_train_drift.csv'
+    TRAIN_GPS_PATH = './data/train_drift.csv'
     train_data = pd.read_csv(TRAIN_GPS_PATH)
+    train_data.columns = ['loadingOrder','carrierName','timestamp','longitude',
+                  'latitude','vesselMMSI','speed','direction','vesselNextport',
+                  'vesselNextportETA','vesselStatus','vesselDatasource','TRANSPORT_TRACE']
 
     TEST_GPS_PATH = './data/new_test_data_B.csv'
     test_data = pd.read_csv(TEST_GPS_PATH)

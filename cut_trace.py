@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-27 16:10:40
+@LastEditTime: 2020-06-29 20:17:25
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -81,7 +81,8 @@ class CutTrace(object):
                         break
                     
                     if end_first > 0 and end_second > 0:
-                        start_index, end_index = start_first, (end_first+end_second)//2
+                        # start_index, end_index = start_first, (end_first+end_second)//2
+                        start_index, end_index = start_first, end_first
                     elif end_first > 0:
                         start_index, end_index = start_first, end_first
                     else:
