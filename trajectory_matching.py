@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-29 23:05:00
+@LastEditTime: 2020-06-29 23:07:47
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -283,14 +283,18 @@ class TrajectoryMatching(object):
             print('error:', order, 'tdist.cdist')
             return None,None
         
-        if len(train_label_list) > 3:
-            min_traj_index_3 = list(map(lambda x:cdist.index(x), heapq.nsmallest(3, cdist)))
-            
-            mean_label_seconds = np.mean(list(map(lambda x: x.total_seconds(), list(np.array(train_label_list)[min_traj_index_3]))))
+        try:
+            if len(train_label_list) > 3:
+                min_traj_index_3 = list(map(lambda x:cdist.index(x), heapq.nsmallest(3, cdist)))
+                
+                mean_label_seconds = np.mean(list(map(lambda x: x.total_seconds(), 
+                    list(np.array(train_label_list)[min_traj_index_3]))))
 
-            mean_label = pd.Timedelta(seconds=mean_label_seconds)
-        else:
-            mean_label = train_label_list[min_traj_index]
+                mean_label = pd.Timedelta(seconds=mean_label_seconds)
+            else:
+                mean_label = train_label_list[min_traj_index]
+        except:
+            print('求取平均值错误:', order)
             
         return train_order_list[min_traj_index], mean_label
 
