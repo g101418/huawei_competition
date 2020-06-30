@@ -1,12 +1,13 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-29 23:11:34
+@LastEditTime: 2020-06-30 08:13:14
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
 from cut_trace import CutTrace
 from utils import portsUtils
+from config import config
 
 import numpy as np
 import pandas as pd
@@ -23,17 +24,26 @@ warnings.filterwarnings('ignore')
 
 
 class TrajectoryMatching(object):
-    """用于匹配轨迹
-
-    Args:
+    """轨迹匹配，用于得到匹配后轨迹相关label等
 
     """
-
     def __init__(self, 
                  train_data, 
                  geohash_precision=4, 
                  metric="sspd",
-                 cut_distance_threshold=-1):
+                 cut_distance_threshold=-1,
+                 mean_label_num=1,
+                 vessel_name=''):
+        """初始化
+
+        Args:
+            train_data (pd.DataFrame): 训练集，完整的
+            geohash_precision (int, optional): 利用geohash压缩轨迹缓解GPS点密度不同问题. Defaults to 4.
+            metric (str, optional): 轨迹相似度(距离)算法. Defaults to "sspd".
+            cut_distance_threshold (int, optional): 轨迹前后收缩切割的距离阈值. Defaults to -1.
+            mean_label_num (int, optional): 匹配轨迹后求平均的轨迹数. Defaults to 1.
+            vessel_name (str, optional): 只有两种：'carrierName'或'vesselMMSI'. Defaults to ''.
+        """
         super().__init__()
         self.train_data = train_data
         self.__cutTrace = CutTrace()
@@ -43,6 +53,11 @@ class TrajectoryMatching(object):
         self.__cutting_proportion = -1 # 按比例切割暂时不用
         self.__metric = metric
         self.cut_distance_threshold = cut_distance_threshold
+        self.__mean_label_num = mean_label_num
+        if vessel_name in ['carrierName', 'vesselMMSI']:
+            self.__vessel_name = vessel_name
+        else:
+            self.__vessel_name = ''
 
     def __get_traj_order_label(self, start_port, end_port):
         """按照起止港得到相关训练集
@@ -284,7 +299,8 @@ class TrajectoryMatching(object):
             return None,None
         
         try:
-            min_traj_index_3 = list(map(lambda x:cdist.index(x), heapq.nsmallest(min(len(train_label_list), 3), cdist)))
+            min_traj_index_3 = list(map(lambda x:cdist.index(x), 
+                heapq.nsmallest(min(len(train_label_list), self.__mean_label_num), cdist)))
             
             mean_label_seconds = np.mean(list(map(lambda x: x.total_seconds(), 
                 list(np.array(train_label_list)[min_traj_index_3]))))
@@ -348,7 +364,7 @@ class TrajectoryMatching(object):
             end_port (str): 终止港名称
 
         Returns:
-            [list]: 1行3列，3列分别是订单列、标签列、轨迹列
+            (pd.DataFrame): 根据起止港路由得到的匹配df(match_df)
         """
         # 准备相关航线，写入self的字典
         trace_str = start_port+'-'+end_port
@@ -367,6 +383,14 @@ class TrajectoryMatching(object):
 
             
     def modify_traj_label(self, df):
+        """切割匹配到的训练集，得到相关轨迹和label
+        
+        Args:
+            df (pd.DataFrame): test集df，只有单个loadingOrder
+
+        Returns:
+            [list, list, list]: 1行3列，3列分别是订单列、标签列、轨迹列
+        """
         # df为test的中的部分，只有单个订单
         # 该函数用于并行化处理
         order = df.loc[df.index[0],'loadingOrder']
@@ -387,13 +411,17 @@ class TrajectoryMatching(object):
         
         # ! 考虑船号
         try:
-            match_df_ = match_df[match_df['vesselMMSI']==test_data.vesselMMSI.unique().tolist()[0]]
-            
-            if len(match_df_) != 0:
-                match_df_ = match_df_.reset_index(drop=True)
-                cutted_df = self.__cutTrace.cut_trace_for_test(
-                    df, match_df_, self.cut_distance_threshold, for_parallel=False)
-                if len(cutted_df) == 0:
+            if len(self.__vessel_name) > 0:
+                match_df_ = match_df[match_df[self.__vessel_name]==test_data[self.__vessel_name].unique().tolist()[0]]
+                
+                if len(match_df_) != 0:
+                    match_df_ = match_df_.reset_index(drop=True)
+                    cutted_df = self.__cutTrace.cut_trace_for_test(
+                        df, match_df_, self.cut_distance_threshold, for_parallel=False)
+                    if len(cutted_df) == 0:
+                        cutted_df = self.__cutTrace.cut_trace_for_test(
+                            df, match_df, self.cut_distance_threshold, for_parallel=False)
+                else:
                     cutted_df = self.__cutTrace.cut_trace_for_test(
                         df, match_df, self.cut_distance_threshold, for_parallel=False)
             else:
@@ -420,19 +448,20 @@ class TrajectoryMatching(object):
 
 
 if __name__ == "__main__":
-    TRAIN_GPS_PATH = './data/train_drift.csv'
-    train_data = pd.read_csv(TRAIN_GPS_PATH)
-    train_data.columns = ['loadingOrder','carrierName','timestamp','longitude',
-                  'latitude','vesselMMSI','speed','direction','vesselNextport',
-                  'vesselNextportETA','vesselStatus','vesselDatasource','TRANSPORT_TRACE']
+    train_data = pd.read_csv(config.train_data_drift)
+    train_data.columns = config.train_data_columns
 
-    TEST_GPS_PATH = './data/new_test_data_B.csv'
-    test_data = pd.read_csv(TEST_GPS_PATH)
+    test_data = pd.read_csv(config.test_data_path)
 
-    pandarallel.initialize()
+    pandarallel.initialize(nb_workers=config.nb_workers)
 
     trajectoryMatching = TrajectoryMatching(
-        train_data, geohash_precision=5, cut_distance_threshold=1.3, metric='sspd')
+        train_data, 
+        geohash_precision=5, 
+        cut_distance_threshold=1.3, 
+        metric='sspd', 
+        mean_label_num=10, 
+        vessel_name='vesselMMSI')
     
     order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(test_data)
     
@@ -476,12 +505,12 @@ if __name__ == "__main__":
         lambda x: trajectoryMatching.parallel_get_label(x, test_data))
     final_order_label = final_order_label.tolist()
     
-    with open('./final_order_label_0625.txt', 'w')as f:
+    with open(config.txt_file_dir_path + 'final_order_label_0625.txt', 'w')as f:
         f.write(str(final_order_label))
 
     final_order_label_dict = {}
     for i in range(len(final_order_label)):
         final_order_label_dict[final_order_label[i][0]] = final_order_label[i][2]
 
-    with open('final_order_label_dict_0625.txt', 'w')as f:
+    with open(config.txt_file_dir_path + 'final_order_label_dict_0625.txt', 'w')as f:
         f.write(str(final_order_label_dict))

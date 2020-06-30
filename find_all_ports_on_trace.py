@@ -1,17 +1,19 @@
 '''
 @Author: Gao S
 @Date: 2020-06-19 19:08:19
-@LastEditTime: 2020-06-24 00:09:22
+@LastEditTime: 2020-06-30 08:13:06
 @Description: 找到航线经过的所有港口
 @FilePath: /HUAWEI_competition/find_all_ports_on_trace.py
 '''
 from pandarallel import pandarallel
 import geohash
 import itertools
-from utils import haversine, portsUtils
 
 import pandas as pd
 import numpy as np
+
+from config import config
+from utils import haversine, portsUtils
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -183,14 +185,13 @@ class FindPorts(object):
 
 
 if __name__ == '__main__':
-    TRAIN_GPS_PATH = './data/_train_drift.csv'
-    train_data = pd.read_csv(TRAIN_GPS_PATH)
+    train_data = pd.read_csv(config.train_data_drift_drop)
 
     # progress_bar=True
-    pandarallel.initialize()
+    pandarallel.initialize(nb_workers=config.nb_workers)
 
     find_ports = FindPorts()
     orders_ports_dict = find_ports.find_ports(train_data, 'AA191175561416')
     
-    with open('orders_ports_dict_06240039.txt', 'w') as f:
+    with open(config.tool_file_dir_path + 'orders_ports_dict_06240039.txt', 'w') as f:
         f.write(str(orders_ports_dict))

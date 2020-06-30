@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-29 20:17:25
+@LastEditTime: 2020-06-30 08:00:03
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -20,6 +20,12 @@ class CutTrace(object):
     def __init__(self,
                  orders_ports_dict_filename=config.orders_ports_dict_filename,
                  orders_ports_dict=None):
+        """初始化
+
+        Args:
+            orders_ports_dict_filename (str, optional): 港口路由表. Defaults to config.orders_ports_dict_filename.
+            orders_ports_dict (dict, optional): 港口录音表字典. Defaults to None.
+        """
         super().__init__()
         if orders_ports_dict is None:
             with open(orders_ports_dict_filename, 'r') as f:
@@ -44,8 +50,11 @@ class CutTrace(object):
             start_port (str): 起始港，映射后名称
             end_port (str): 终点港，映射后名称
             line (Bool): 是否直接返回平铺的全部索引值，如果False，则会返回对应的订单及子下标: [[xx, xx], [xx, xx], ...]
+        Returns:
+            (list): 两种，当line=True时，返回一列数据，元素为匹配到的绝对下标；当line=False时，返回n行2列，
+                每行是匹配到的train集头尾坐标，第一列是头坐标，第二列是尾坐标
         """
-
+        
         # TODO list为空
 
         use_indexs = []
@@ -111,6 +120,15 @@ class CutTrace(object):
             return use_indexs
         
     def get_use_indexs_len(self, start_port, end_port):
+        """得到匹配到的train集轨迹数，即loadingOrder数
+
+        Args:
+            start_port (str): 起始港，映射后名称
+            end_port (str): 终点港，映射后名称
+
+        Returns:
+            (int): 长度，匹配到的train集轨迹数，即loadingOrder数
+        """
         result =  self.get_use_indexs(start_port, end_port, line=False)
         return len(result)
     
@@ -125,7 +143,7 @@ class CutTrace(object):
             distance_threshold (int, optional): 到首尾节点的距离阈值. Defaults to 80.
             for_parallel (Bool): 为True时使用多线程，为False时不使用多线程
         Returns:
-            [pd.DataFrame]: 切割后的df数据，index已经重设，可能为空，最后一条用切割前最后一条代替以求
+            (pd.DataFrame): 切割后的df数据，index已经重设，可能为空，最后一条用切割前最后一条代替以求
                 Label，倒数第二条为切割后train最后一个时间戳
         """
         # 得到test的首末点坐标

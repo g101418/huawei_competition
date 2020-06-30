@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-16 14:46:14
-@LastEditTime: 2020-06-26 13:53:10
+@LastEditTime: 2020-06-30 08:21:50
 @Description: 
 @FilePath: /HUAWEI_competition/delete_drift.py
 '''
@@ -11,11 +11,27 @@ from pandarallel import pandarallel
 from config import config
 
 class DriftPoint(object):
+    """删除漂移点
+
+    """
     def __init__(self, speed_threshold=50):
+        """初始化
+
+        Args:
+            speed_threshold (int, optional): 速度阈值，超过者删除. Defaults to 50.
+        """
         super().__init__()
         self.speed_threshold=speed_threshold
 
     def __get_delete_drift_point(self, df):
+        """根据速度得到要删除的点
+
+        Args:
+            df (pd.DataFrame): 单个loadingOrder的训练集数据
+
+        Returns:
+            (list): 要删除的相对下标
+        """
         delete_indexs = []
         anchor_point_i = df.index[0]
         anchor_point_lon = df.loc[df.index[0]]['longitude']
@@ -57,11 +73,20 @@ class DriftPoint(object):
         return delete_indexs
     
     def delete_drift_point(self, df):
+        """删除漂移点
+
+        Args:
+            df (pd.DataFrame): 训练集数据，全部
+
+        Returns:
+            (pd.DataFrame): 删除漂移点后数据集
+        """
         pandarallel.initialize(nb_workers=config.nb_workers)
         
         delete_indexs = df.groupby('loadingOrder')[
             ['timestamp', 'longitude', 'latitude']].parallel_apply(self.__get_delete_drift_point)
 
+        # ! 此处可能有bug
         delete_indexs = [j for i in delete_indexs for j in i]
 
         df.drop(labels=delete_indexs, axis=0, inplace=True)
@@ -81,5 +106,4 @@ if __name__ == '__main__':
     
     train_data = driftPoint.delete_drift_point(train_data)
 
-    train_data.to_csv(config.data_path+'train_drift.csv',
-                      header=None, index=False)
+    train_data.to_csv(config.data_dir_path+'train_drift.csv', index=False)

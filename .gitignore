@@ -143,3 +143,5 @@ results/
 
 *.ipynb
 *.csv
+
+txt_file/
