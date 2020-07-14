@@ -1,0 +1,12 @@
+{'HONGKONG': 'HKHKG',
+ 'BU': 'ARENA',
+ 'ARBUE': 'ARENA',
+ 'NLRTM': 'RTM',
+ 'CNSGH': 'CNSHA',
+ 'CLSAI': 'CLSAN',
+ 'PKBQM': 'PKQCT',
+ 'PACOL': 'PAMIT',
+ 'EGPSD': 'EGPSE',
+ 'PAONX': 'PAMIT',
+ 'HON': 'CNHKG'
+ }
