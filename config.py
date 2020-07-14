@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-16 14:59:17
-@LastEditTime: 2020-07-14 16:13:11
+@LastEditTime: 2020-07-14 18:13:47
 @Description: 
 @FilePath: /HUAWEI_competition/config.py
 '''
@@ -40,6 +40,8 @@ class Config:
         self.port_map_dict_filename = self.tool_file_dir_path + 'port_map_dict.txt'
         # self.all_port_points_filename='./tool_file/all_port_points.txt'
         self.all_port_points_filename = self.tool_file_dir_path + 'new_port_points.txt'
+        
         self.port_alias_filename = self.tool_file_dir_path + 'port_alias.txt'
+        self.port_near_filename = self.tool_file_dir_path + 'port_near.txt'
 
 config = Config()

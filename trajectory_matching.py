@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-14 17:18:05
+@LastEditTime: 2020-07-14 18:58:14
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -114,7 +114,29 @@ class TrajectoryMatching(object):
                     result_ += list(range(row[1], int((row[2]+1-row[1]) * self.__cutting_proportion)+row[1]))
             result = result_
         else:
+            # TODO 此处考虑增加相近港口
+            # TODO 初步：考虑结果为空者
+            # TODO 中级：考虑将不同起止点进行融合，考虑order重合现象
             result = self.__cutTrace.get_use_indexs(start_port, end_port)
+            
+            if len(result) == 0:
+                start_port_near_names = portsUtils.get_near_name(start_port)
+                end_port_near_names = portsUtils.get_near_name(end_port)
+                
+                if len(start_port_near_names) == 1 and len(end_port_near_names) == 1:
+                    return None
+                
+                near_name_pairs = [(i,j) for i in start_port_near_names for j in end_port_near_names]
+                
+                if len(near_name_pairs) == 0:
+                    return None
+                
+                results = []
+                for item in near_name_pairs:
+                    result = self.__cutTrace.get_use_indexs(item[0], item[1])
+                    results.append((result, len(result)))
+                results.sort(key=lambda x: x[1], reverse=True)
+                result = results[0][0]
 
         if len(result) == 0:
             return None
@@ -284,6 +306,7 @@ class TrajectoryMatching(object):
         """
         try:
             if self.cut_distance_threshold < 0:
+                # TODO 是否为作废代码
                 train_order_list, train_label_list, train_traj_list = self.get_related_traj(
                     trace[0], trace[1])
 

@@ -2,4 +2,12 @@
  'BU': 'ARENA',
  'ARBUE': 'ARENA',
  'NLRTM': 'RTM',
- 'CNSGH': 'CNSHA'}
+ 'CNSGH': 'CNSHA',
+ 'HRRIJ': 'CNXAM',
+ 'CLSAI': 'CLSAN',
+ 'PKBQM': 'PKQCT',
+ 'PACOL': 'PAMIT',
+ 'EGPSD': 'EGPSE',
+ 'PAONX': 'PAMIT',
+ 'HON': 'CNHKG'
+ }
