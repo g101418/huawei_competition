@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-16 14:59:17
-@LastEditTime: 2020-06-30 08:07:31
+@LastEditTime: 2020-07-14 12:14:58
 @Description: 
 @FilePath: /HUAWEI_competition/config.py
 '''
@@ -19,9 +19,9 @@ class Config:
         self.tool_file_dir_path = './tool_file/'
         
 
-        self.test_data_path = self.data_dir_path + 'new_test_data_B.csv'
+        self.test_data_path = self.data_dir_path + 'test_data0711.csv'
 
-        self.train_gps_path = self.data_dir_path + 'train0523.csv'
+        self.train_gps_path = self.data_dir_path + 'train0711.csv'
         self.train_data_drift_drop = self.data_dir_path + '_train_drift.csv'
         self.train_data_drift = self.data_dir_path + 'train_drift.csv'
 

@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-16 14:46:14
-@LastEditTime: 2020-07-14 10:21:17
+@LastEditTime: 2020-07-14 12:27:06
 @Description: 
 @FilePath: /HUAWEI_competition/delete_drift.py
 '''
@@ -14,7 +14,7 @@ class DriftPoint(object):
     """删除漂移点
 
     """
-    def __init__(self, speed_threshold=50):
+    def __init__(self):
         """初始化
 
         Args:
@@ -72,7 +72,7 @@ class DriftPoint(object):
 
         return delete_indexs
     
-    def delete_drift_point(self, df):
+    def delete_drift_point(self, df, speed_threshold=50):
         """删除漂移点
 
         Args:
@@ -81,6 +81,8 @@ class DriftPoint(object):
         Returns:
             (pd.DataFrame): 删除漂移点后数据集
         """
+        self.speed_threshold=speed_threshold
+        
         pandarallel.initialize(nb_workers=config.nb_workers)
         
         delete_indexs = df.groupby('loadingOrder')[
@@ -94,6 +96,8 @@ class DriftPoint(object):
         df = df.reset_index(drop=True)
         
         return df
+    
+driftPoint = DriftPoint()
 
 if __name__ == '__main__':
     train_data = pd.read_csv(config.train_gps_path, header=None)
@@ -102,8 +106,8 @@ if __name__ == '__main__':
     train_data.sort_values(['loadingOrder', 'timestamp'], inplace=True)
     train_data = train_data.reset_index(drop=True)
     
-    driftPoint = DriftPoint(50)
     
-    train_data = driftPoint.delete_drift_point(train_data)
+    
+    train_data = driftPoint.delete_drift_point(train_data, 50)
 
     train_data.to_csv(config.train_data_drift, index=False)

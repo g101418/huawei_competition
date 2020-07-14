@@ -1,3 +1,10 @@
+'''
+@Author: Gao S
+@Date: 2020-07-14 12:12:42
+@LastEditTime: 2020-07-14 12:28:40
+@Description: 
+@FilePath: /HUAWEI_competition/data_analyse_util.py
+'''
 # -*- coding:utf-8 -*-
 # @Time: 2020/7/14 10:43
 # @Author: beilwu
@@ -5,6 +12,7 @@
 # @File: data_analyse_util.py
 
 import pandas as pd
+from config import config
 
 
 class DataAnalyseUtil(object):
@@ -14,37 +22,24 @@ class DataAnalyseUtil(object):
 
 
     # 用于获取去重后还剩余的运单号
-    def get_drop_duplicated_order_list(self, file_path='train0711.csv', data_rows=0):
-        if data_rows > 0:
-            train_data = pd.read_csv(file_path, nrows=data_rows, header=None)
-        else:
-            train_data = pd.read_csv(file_path, header=None)
-
-        # 需要给train_data加上列名
-        train_data.columns = ['loadingOrder', 'carrierName', 'timestamp', 'longitude',
-                              'latitude', 'vesselMMSI', 'speed', 'direction', 'vesselNextport',
-                              'vesselNextportETA', 'vesselStatus', 'vesselDatasource', 'TRANSPORT_TRACE']
-
+    def get_drop_duplicated_order_list(self, train_data):
         temp_train_data = train_data.drop_duplicates(subset=['vesselMMSI', 'timestamp'], keep='first', inplace=False)
-        temp_train_data_order_list = temp_train_data.loadingOrder.unique()
+        temp_train_data_order_list = temp_train_data.loadingOrder.unique().tolist()
         return temp_train_data_order_list
 
     # 根据剩余的运单号从原文件截取出新的数据集
-    def get_drop_duplicated_data(self, file_path):
-        data_df = pd.read_csv(file_path, header=None)
-        data_df.columns = ['loadingOrder', 'carrierName', 'timestamp', 'longitude',
-                    'latitude', 'vesselMMSI', 'speed', 'direction', 'vesselNextport',
-                    'vesselNextportETA', 'vesselStatus', 'vesselDatasource', 'TRANSPORT_TRACE']
-        temp_train_data_order_list = self.get_drop_duplicated_order_list(file_path)
-        new_train_data = data_df.loc[data_df['loadingOrder'].isin(temp_train_data_order_list)]
+    def get_drop_duplicated_data(self, train_data):
+        temp_train_data_order_list = self.get_drop_duplicated_order_list(train_data)
+        new_train_data = train_data.loc[train_data['loadingOrder'].isin(temp_train_data_order_list)]
         return new_train_data
 
 
 dataAnalyseUtil = DataAnalyseUtil()
 
 if __name__ == '__main__':
-
-    # order_list = dataAnalyseUtil.get_drop_duplicated_order_list('train_data_50000.csv')
-    data_frame = dataAnalyseUtil.get_drop_duplicated_data('train_data_50000.csv')
-    print(data_frame)
-    print(data_frame.shape[0])
+    train_data = pd.read_csv(config.train_gps_path, header=None)
+    train_data.columns = config.train_data_columns
+    
+    train_data_dup = dataAnalyseUtil.get_drop_duplicated_data(train_data)
+    
+    train_data_dup.to_csv(config.train_gps_path, index=False)
