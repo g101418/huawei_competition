@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-14 21:49:48
+@LastEditTime: 2020-07-14 21:53:52
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -87,7 +87,6 @@ class TrajectoryMatching(object):
 
         return order_list, label_list, traj_list
 
-    # TODO 函数：返回相关训练集，并重新排序，写入字典
     def __get_match_df(self, start_port, end_port, reset_index=True):
         """得到与trace相关的训练集，训练集可选是否排序
         如果没有相关df，则返回None
@@ -99,9 +98,6 @@ class TrajectoryMatching(object):
         Returns:
             match_df (pd.DataFrame): 与trace相关的训练集，可选择是否排序
         """
-        # TODO 停止map
-        start_port = portsUtils.get_mapped_port_name(start_port)[0]
-        end_port = portsUtils.get_mapped_port_name(end_port)[0]
         
         # TODO 此处考虑增加相近港口
         # TODO 初步：考虑结果为空者
@@ -215,9 +211,6 @@ class TrajectoryMatching(object):
         trace_[0] = portsUtils.get_alias_name(trace[0])
         trace_[1] = portsUtils.get_alias_name(trace[-1])
 
-        trace_[0] = portsUtils.get_mapped_port_name(trace_[0])[0]
-        trace_[1] = portsUtils.get_mapped_port_name(trace_[1])[0]
-
         return trace_
 
     def get_test_trace(self, test_data):
@@ -255,9 +248,6 @@ class TrajectoryMatching(object):
         start_port = portsUtils.get_alias_name(start_port)
         end_port = portsUtils.get_alias_name(end_port)
         
-        start_port = portsUtils.get_mapped_port_name(start_port)[0]
-        end_port = portsUtils.get_mapped_port_name(end_port)[0]
-        
         result = self.get_related_traj(start_port, end_port)[0]
         if result is None:
             return 0
@@ -274,8 +264,6 @@ class TrajectoryMatching(object):
         Returns:
             [int]: 相关df中订单的数量
         """
-        start_port = portsUtils.get_mapped_port_name(start_port)[0]
-        end_port = portsUtils.get_mapped_port_name(end_port)[0]
         
         result = self.get_related_df(start_port, end_port)
         if result is None:
@@ -415,13 +403,8 @@ class TrajectoryMatching(object):
         
         trace = df.loc[df.index[0],'TRANSPORT_TRACE'].split('-')
         
-        trace_ = [None, None]
-        
-        trace_[0] = portsUtils.get_alias_name(trace[0])
-        trace_[1] = portsUtils.get_alias_name(trace[-1])
-        
-        strat_port = portsUtils.get_mapped_port_name(trace_[0])[0]
-        end_port = portsUtils.get_mapped_port_name(trace_[1])[0]
+        strat_port = portsUtils.get_alias_name(trace[0])
+        end_port = portsUtils.get_alias_name(trace[-1])
         
         trace_str = strat_port+'-'+end_port
         
