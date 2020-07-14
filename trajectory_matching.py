@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-06-30 08:13:14
+@LastEditTime: 2020-07-14 15:58:14
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -200,11 +200,16 @@ class TrajectoryMatching(object):
         trace = data_series.unique()[0]
         trace = trace.replace(' ', '')
         trace = trace.split('-')
+        
+        trace_ = [None, None]
+        
+        trace_[0] = portsUtils.get_alias_name(trace[0])
+        trace_[1] = portsUtils.get_alias_name(trace[-1])
 
-        trace[0] = portsUtils.get_mapped_port_name(trace[0])[0]
-        trace[1] = portsUtils.get_mapped_port_name(trace[1])[0]
+        trace_[0] = portsUtils.get_mapped_port_name(trace_[0])[0]
+        trace_[1] = portsUtils.get_mapped_port_name(trace_[1])[0]
 
-        return trace
+        return trace_
 
     def get_test_trace(self, test_data):
         """对测试集进行处理
@@ -448,8 +453,7 @@ class TrajectoryMatching(object):
 
 
 if __name__ == "__main__":
-    train_data = pd.read_csv(config.train_data_drift)
-    train_data.columns = config.train_data_columns
+    train_data = pd.read_csv(config.train_data_drift_dup)
 
     test_data = pd.read_csv(config.test_data_path)
 

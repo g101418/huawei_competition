@@ -1,0 +1,5 @@
+{'HONGKONG': 'HKHKG',
+ 'BU': 'ARENA',
+ 'ARBUE': 'ARENA',
+ 'NLRTM': 'RTM',
+ 'CNSGH': 'CNSHA'}

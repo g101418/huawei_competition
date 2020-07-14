@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-07-14 12:12:42
-@LastEditTime: 2020-07-14 12:28:40
+@LastEditTime: 2020-07-14 14:12:36
 @Description: 
 @FilePath: /HUAWEI_competition/data_analyse_util.py
 '''
@@ -42,4 +42,4 @@ if __name__ == '__main__':
     
     train_data_dup = dataAnalyseUtil.get_drop_duplicated_data(train_data)
     
-    train_data_dup.to_csv(config.train_gps_path, index=False)
+    train_data_dup.to_csv(config.train_data_dup, index=False)

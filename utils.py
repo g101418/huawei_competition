@@ -37,11 +37,14 @@ class PortsUtils(object):
     def __init__(self,
                  port_map_dict_filename=config.port_map_dict_filename,
                  all_port_points_filename=config.all_port_points_filename,
+                 port_alias_filename=config.port_alias_filename,
                  port_map_dict=None,
-                 all_port_points=None):
+                 all_port_points=None,
+                 port_alias=None):
         super().__init__()
         self.__port_map_dict_filename = port_map_dict_filename
         self.__all_port_points_filename = all_port_points_filename
+        self.__port_alias_filename=config.port_alias_filename
 
         if port_map_dict is None:
             with open(self.__port_map_dict_filename, 'r') as f:
@@ -53,6 +56,11 @@ class PortsUtils(object):
                 self.all_port_points = eval(f.read())
         else:
             self.all_port_points = all_port_points
+        if port_alias is None:
+            with open(self.__port_alias_filename, 'r') as f:
+                self.port_alias = eval(f.read())
+        else:
+            self.port_alias = port_alias
 
     def get_port(self, lon, lat, distance_threshold=10.0):
         """根据经纬度得到最匹配的港口名称及坐标、距离。返回值的名称前后无空格
@@ -110,6 +118,12 @@ class PortsUtils(object):
             return self.port_map_dict[port_name][0], self.all_port_points[self.port_map_dict[port_name][0]]
         else:
             return None, [0.0, 0.0]
+        
+    def get_alias_name(self, port_name):
+        if port_name in self.port_alias:
+            return self.port_alias[port_name]
+        else:
+            return port_name
 
     def merge_port(self, port_name_1, port_name_2):
         """用来删除/合并两个港口(名称)
