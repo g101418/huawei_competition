@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-14 21:53:52
+@LastEditTime: 2020-07-14 22:06:34
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -416,7 +416,6 @@ class TrajectoryMatching(object):
         if len(match_df) == 0:
             return [None, None, None]
         
-        # ! 考虑船号
         try:
             if len(self.__vessel_name) > 0:
                 match_df_ = match_df[match_df[self.__vessel_name]==test_data[self.__vessel_name].unique().tolist()[0]]
@@ -521,6 +520,6 @@ if __name__ == "__main__":
     with open(config.txt_file_dir_path + 'final_order_label_dict_0714.txt', 'w')as f:
         f.write(str(final_order_label_dict))
         
-        
+    
 # TODO 别名处理
 # TODO 无用代码删除
