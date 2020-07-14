@@ -3,7 +3,6 @@
  'ARBUE': 'ARENA',
  'NLRTM': 'RTM',
  'CNSGH': 'CNSHA',
- 'HRRIJ': 'CNXAM',
  'CLSAI': 'CLSAN',
  'PKBQM': 'PKQCT',
  'PACOL': 'PAMIT',

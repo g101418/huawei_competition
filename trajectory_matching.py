@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-14 18:58:14
+@LastEditTime: 2020-07-14 21:43:08
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -266,6 +266,9 @@ class TrajectoryMatching(object):
         Returns:
             [int]: 相关轨迹的数量
         """
+        start_port = portsUtils.get_alias_name(start_port)
+        end_port = portsUtils.get_alias_name(end_port)
+        
         start_port = portsUtils.get_mapped_port_name(start_port)[0]
         end_port = portsUtils.get_mapped_port_name(end_port)[0]
         
@@ -425,8 +428,14 @@ class TrajectoryMatching(object):
         order = df.loc[df.index[0],'loadingOrder']
         
         trace = df.loc[df.index[0],'TRANSPORT_TRACE'].split('-')
-        strat_port = portsUtils.get_mapped_port_name(trace[0])[0]
-        end_port = portsUtils.get_mapped_port_name(trace[1])[0]
+        
+        trace_ = [None, None]
+        
+        trace_[0] = portsUtils.get_alias_name(trace[0])
+        trace_[1] = portsUtils.get_alias_name(trace[-1])
+        
+        strat_port = portsUtils.get_mapped_port_name(trace_[0])[0]
+        end_port = portsUtils.get_mapped_port_name(trace_[1])[0]
         
         trace_str = strat_port+'-'+end_port
         
@@ -542,3 +551,7 @@ if __name__ == "__main__":
 
     with open(config.txt_file_dir_path + 'final_order_label_dict_0714.txt', 'w')as f:
         f.write(str(final_order_label_dict))
+        
+        
+# TODO 别名处理
+# TODO 无用代码删除

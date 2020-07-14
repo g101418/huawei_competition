@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-19 19:08:19
-@LastEditTime: 2020-07-14 16:15:41
+@LastEditTime: 2020-07-14 19:30:27
 @Description: 找到航线经过的所有港口
 @FilePath: /HUAWEI_competition/find_all_ports_on_trace.py
 '''
@@ -196,3 +196,7 @@ if __name__ == '__main__':
     
     with open(config.tool_file_dir_path + 'orders_ports_dict_0714.txt', 'w') as f:
         f.write(str(orders_ports_dict))
+
+    def match_trace(x):
+        return
+    match_order = train_data.groupby('loadingOrder').parallel_apply(lambda x: match_trace(x))
