@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-14 21:43:08
+@LastEditTime: 2020-07-14 21:49:48
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -50,7 +50,6 @@ class TrajectoryMatching(object):
         self.match_traj_dict = {}
         self.match_df_dict = {}
         self.__geohash_precision = geohash_precision
-        self.__cutting_proportion = -1 # 按比例切割暂时不用
         self.__metric = metric
         self.cut_distance_threshold = cut_distance_threshold
         self.__mean_label_num = mean_label_num
@@ -89,7 +88,7 @@ class TrajectoryMatching(object):
         return order_list, label_list, traj_list
 
     # TODO 函数：返回相关训练集，并重新排序，写入字典
-    def __get_match_df(self, start_port, end_port, reset_index=True, for_df=False):
+    def __get_match_df(self, start_port, end_port, reset_index=True):
         """得到与trace相关的训练集，训练集可选是否排序
         如果没有相关df，则返回None
         Args:
@@ -104,39 +103,29 @@ class TrajectoryMatching(object):
         start_port = portsUtils.get_mapped_port_name(start_port)[0]
         end_port = portsUtils.get_mapped_port_name(end_port)[0]
         
-        # TODO 删除__cutting_proportion相关
-        if for_df == True and self.__cutting_proportion > 0:
-            result = self.__cutTrace.get_use_indexs(
-                start_port, end_port, line=False)
-            result_ = []
-            for row in result:
-                if len(row) != 0:
-                    result_ += list(range(row[1], int((row[2]+1-row[1]) * self.__cutting_proportion)+row[1]))
-            result = result_
-        else:
-            # TODO 此处考虑增加相近港口
-            # TODO 初步：考虑结果为空者
-            # TODO 中级：考虑将不同起止点进行融合，考虑order重合现象
-            result = self.__cutTrace.get_use_indexs(start_port, end_port)
+        # TODO 此处考虑增加相近港口
+        # TODO 初步：考虑结果为空者
+        # TODO 中级：考虑将不同起止点进行融合，考虑order重合现象
+        result = self.__cutTrace.get_use_indexs(start_port, end_port)
+        
+        if len(result) == 0:
+            start_port_near_names = portsUtils.get_near_name(start_port)
+            end_port_near_names = portsUtils.get_near_name(end_port)
             
-            if len(result) == 0:
-                start_port_near_names = portsUtils.get_near_name(start_port)
-                end_port_near_names = portsUtils.get_near_name(end_port)
-                
-                if len(start_port_near_names) == 1 and len(end_port_near_names) == 1:
-                    return None
-                
-                near_name_pairs = [(i,j) for i in start_port_near_names for j in end_port_near_names]
-                
-                if len(near_name_pairs) == 0:
-                    return None
-                
-                results = []
-                for item in near_name_pairs:
-                    result = self.__cutTrace.get_use_indexs(item[0], item[1])
-                    results.append((result, len(result)))
-                results.sort(key=lambda x: x[1], reverse=True)
-                result = results[0][0]
+            if len(start_port_near_names) == 1 and len(end_port_near_names) == 1:
+                return None
+            
+            near_name_pairs = [(i,j) for i in start_port_near_names for j in end_port_near_names]
+            
+            if len(near_name_pairs) == 0:
+                return None
+            
+            results = []
+            for item in near_name_pairs:
+                result = self.__cutTrace.get_use_indexs(item[0], item[1])
+                results.append((result, len(result)))
+            results.sort(key=lambda x: x[1], reverse=True)
+            result = results[0][0]
 
         if len(result) == 0:
             return None
@@ -186,9 +175,6 @@ class TrajectoryMatching(object):
         traj_list = [k for k, g in itertools.groupby(traj_list)]
         traj_list = list(
             map(lambda x: [geohash.decode(x)[1], geohash.decode(x)[0]], traj_list))
-
-        if self.__cutting_proportion > 0:
-            traj_list = traj_list[:int(len(traj_list)*self.__cutting_proportion)]
 
         return traj_list
 
@@ -405,7 +391,7 @@ class TrajectoryMatching(object):
             return self.match_df_dict[trace_str]
         else:
             match_df = self.__get_match_df(
-                start_port, end_port, reset_index=True, for_df=True)
+                start_port, end_port, reset_index=True)
 
             if match_df is not None:
                 self.match_df_dict[trace_str] = match_df.copy()
