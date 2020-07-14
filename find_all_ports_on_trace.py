@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-19 19:08:19
-@LastEditTime: 2020-07-14 16:12:10
+@LastEditTime: 2020-07-14 16:15:41
 @Description: 找到航线经过的所有港口
 @FilePath: /HUAWEI_competition/find_all_ports_on_trace.py
 '''
@@ -192,7 +192,7 @@ if __name__ == '__main__':
     pandarallel.initialize(nb_workers=config.nb_workers)
 
     
-    orders_ports_dict = findPorts.find_ports(train_data, 'AA191175561416')
+    orders_ports_dict = findPorts.find_ports(train_data)
     
     with open(config.tool_file_dir_path + 'orders_ports_dict_0714.txt', 'w') as f:
         f.write(str(orders_ports_dict))

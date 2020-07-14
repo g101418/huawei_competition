@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-14 15:58:14
+@LastEditTime: 2020-07-14 17:18:05
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -100,9 +100,10 @@ class TrajectoryMatching(object):
         Returns:
             match_df (pd.DataFrame): 与trace相关的训练集，可选择是否排序
         """
-
+        # TODO 停止map
         start_port = portsUtils.get_mapped_port_name(start_port)[0]
         end_port = portsUtils.get_mapped_port_name(end_port)[0]
+        
         # TODO 删除__cutting_proportion相关
         if for_df == True and self.__cutting_proportion > 0:
             result = self.__cutTrace.get_use_indexs(
@@ -509,12 +510,12 @@ if __name__ == "__main__":
         lambda x: trajectoryMatching.parallel_get_label(x, test_data))
     final_order_label = final_order_label.tolist()
     
-    with open(config.txt_file_dir_path + 'final_order_label_0625.txt', 'w')as f:
+    with open(config.txt_file_dir_path + 'final_order_label_0714.txt', 'w')as f:
         f.write(str(final_order_label))
 
     final_order_label_dict = {}
     for i in range(len(final_order_label)):
         final_order_label_dict[final_order_label[i][0]] = final_order_label[i][2]
 
-    with open(config.txt_file_dir_path + 'final_order_label_dict_0625.txt', 'w')as f:
+    with open(config.txt_file_dir_path + 'final_order_label_dict_0714.txt', 'w')as f:
         f.write(str(final_order_label_dict))
