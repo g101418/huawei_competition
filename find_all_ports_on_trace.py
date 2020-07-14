@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-19 19:08:19
-@LastEditTime: 2020-06-30 08:13:06
+@LastEditTime: 2020-07-14 12:00:58
 @Description: 找到航线经过的所有港口
 @FilePath: /HUAWEI_competition/find_all_ports_on_trace.py
 '''
@@ -20,7 +20,7 @@ warnings.filterwarnings('ignore')
 
 
 class FindPorts(object):
-    def __init__(self, train_data=None, distance_threshold=25, speed_threshold=3):
+    def __init__(self, train_data=None, distance_threshold=25, speed_threshold=2):
         super().__init__()
         self.train_data = train_data
         self.distance_threshold = distance_threshold
