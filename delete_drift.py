@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-16 14:46:14
-@LastEditTime: 2020-07-14 12:27:06
+@LastEditTime: 2020-07-14 16:13:23
 @Description: 
 @FilePath: /HUAWEI_competition/delete_drift.py
 '''
@@ -100,8 +100,7 @@ class DriftPoint(object):
 driftPoint = DriftPoint()
 
 if __name__ == '__main__':
-    train_data = pd.read_csv(config.train_gps_path, header=None)
-    train_data.columns = config.train_data_columns
+    train_data = pd.read_csv(config.train_data_dup, header=None)
 
     train_data.sort_values(['loadingOrder', 'timestamp'], inplace=True)
     train_data = train_data.reset_index(drop=True)

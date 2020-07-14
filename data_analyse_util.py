@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-07-14 12:12:42
-@LastEditTime: 2020-07-14 14:12:36
+@LastEditTime: 2020-07-14 16:10:02
 @Description: 
 @FilePath: /HUAWEI_competition/data_analyse_util.py
 '''
@@ -31,6 +31,8 @@ class DataAnalyseUtil(object):
     def get_drop_duplicated_data(self, train_data):
         temp_train_data_order_list = self.get_drop_duplicated_order_list(train_data)
         new_train_data = train_data.loc[train_data['loadingOrder'].isin(temp_train_data_order_list)]
+        new_train_data = new_train_data.reset_index(drop=True)
+        new_train_data.sort_values(['loadingOrder', 'timestamp'], inplace=True)
         return new_train_data
 
 

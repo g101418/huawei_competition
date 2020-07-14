@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-16 14:59:17
-@LastEditTime: 2020-07-14 15:17:48
+@LastEditTime: 2020-07-14 16:13:11
 @Description: 
 @FilePath: /HUAWEI_competition/config.py
 '''
@@ -23,9 +23,11 @@ class Config:
 
         self.train_gps_path = self.data_dir_path + 'train0711.csv'
         self.train_data_dup = self.data_dir_path + 'train_dup.csv'
+        self.train_data_drift_dup = self.data_dir_path + 'train_drift_dup.csv'
+        
         self.train_data_drift_dup_drop = self.data_dir_path + '_train_drift.csv'
         self.train_data_drift = self.data_dir_path + 'train_drift.csv'
-        self.train_data_drift_dup = self.data_dir_path + 'train_drift_dup.csv'
+        
 
         self.nb_workers = 24
         self.train_data_columns = [
