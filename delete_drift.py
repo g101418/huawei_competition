@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-16 14:46:14
-@LastEditTime: 2020-06-30 08:21:50
+@LastEditTime: 2020-07-14 10:21:17
 @Description: 
 @FilePath: /HUAWEI_competition/delete_drift.py
 '''
@@ -106,4 +106,4 @@ if __name__ == '__main__':
     
     train_data = driftPoint.delete_drift_point(train_data)
 
-    train_data.to_csv(config.data_dir_path+'train_drift.csv', index=False)
+    train_data.to_csv(config.train_data_drift, index=False)
