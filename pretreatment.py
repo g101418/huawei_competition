@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-07-14 10:13:17
-@LastEditTime: 2020-07-15 12:36:19
+@LastEditTime: 2020-07-15 16:45:50
 @Description: 
 @FilePath: /HUAWEI_competition/pretreatment.py
 '''
@@ -41,6 +41,8 @@ class Pretreatment(object):
             
             # 写回
             test_data.to_csv(config.test_data_path, index=False)
+        
+        # 1.2 对test集去除漂移点
         
         # 2. 去重
         if 2 in stage:

@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-15 16:41:47
+@LastEditTime: 2020-07-15 16:50:18
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -466,7 +466,7 @@ class TrajectoryMatching(object):
 if __name__ == "__main__":
     train_data = pd.read_csv(config.train_data_drift_dup)
 
-    test_data = pd.read_csv(config.test_data_path)
+    test_data = pd.read_csv(config.test_data_drift)
 
     pandarallel.initialize(nb_workers=config.nb_workers)
 

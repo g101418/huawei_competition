@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-16 14:59:17
-@LastEditTime: 2020-07-15 14:35:20
+@LastEditTime: 2020-07-15 16:50:44
 @Description: 
 @FilePath: /HUAWEI_competition/config.py
 '''
@@ -22,7 +22,7 @@ class Config:
 
         self.test_data_path = self.data_dir_path + 'test_data0711.csv'
 
-        self.test_data_drift_dup = self.data_dir_path + 'test_data_drift.csv'
+        self.test_data_drift = self.data_dir_path + 'test_data_drift.csv'
 
         self.train_gps_path = self.data_dir_path + 'train0711.csv'
         self.train_data_dup = self.data_dir_path + 'train_dup.csv'
