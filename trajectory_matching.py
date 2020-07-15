@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-15 16:50:18
+@LastEditTime: 2020-07-15 18:05:02
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -103,38 +103,27 @@ class TrajectoryMatching(object):
         # TODO 此处考虑增加相近港口
         # TODO 初步：考虑结果为空者
         # TODO 中级：考虑将不同起止点进行融合，考虑order重合现象
-        result = self.__cutTrace.get_use_indexs(start_port, end_port)
         
-        if len(result) != 0:
-            temp_df = self.train_data.loc[result]
-            order_num = temp_df.loadingOrder.nunique()
-            if order_num < 10:
-                result = []
-        
-        if len(result) == 0:
+        try:
             start_port_near_names = portsUtils.get_near_name(start_port)
             end_port_near_names = portsUtils.get_near_name(end_port)
             
-            if len(start_port_near_names) == 1 and len(end_port_near_names) == 1:
-                return None
-            
             near_name_pairs = [(i,j) for i in start_port_near_names for j in end_port_near_names]
-            
-            if len(near_name_pairs) == 0:
-                return None
             
             results = []
             for item in near_name_pairs:
                 result = self.__cutTrace.get_use_indexs(item[0], item[1])
-                results.append((result, len(result)))
-            results.sort(key=lambda x: x[1], reverse=True)
-            result = results[0][0]
+                results += result
+            results = list(set(results))
+            results.sort()
+        except:
+            print('处理near港错误')
 
         if len(result) == 0:
             return None
 
         # 得到相关训练集
-        match_df = self.train_data.loc[result]
+        match_df = self.train_data.loc[results]
         if reset_index == True:
             match_df = match_df.reset_index(drop=True)
 
@@ -462,6 +451,45 @@ class TrajectoryMatching(object):
         
         return [order_list, label_list, traj_list]
 
+    def process(self, test_data):
+        order_list, trace_list, traj_list = self.get_test_trace(test_data)
+        
+        # 匹配到的订单下标
+        matched_index_list = []
+        for i in range(len(order_list)):
+            length = trajectoryMatching.get_related_df_len(
+                trace_list[i][0], trace_list[i][1])
+            if length != 0:
+                matched_index_list.append(i)
+        
+        # 匹配到的订单df，！添加了order下标
+        matched_df_list = []
+        for i in matched_index_list[:]:
+            match_df = trajectoryMatching.get_related_df(
+                trace_list[i][0], trace_list[i][1])
+            matched_df_list.append([i, match_df])
+            
+        matched_order_list, matched_trace_list, matched_traj_list = [], [], []
+        for i in matched_index_list:
+            matched_order_list.append(order_list[i])
+            matched_trace_list.append(trace_list[i])
+            matched_traj_list.append(traj_list[i])
+            
+        # 路由中没有匹配到的轨迹
+        unmatched_index_list = [k for k in range(len(order_list)) if k not in matched_index_list]
+        unmatched_order_list = [order_list[i] for i in unmatched_index_list]
+        
+        matched_test_data = pd.DataFrame(
+            {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
+
+        final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
+            lambda x: trajectoryMatching.parallel_get_label(x, test_data))
+        final_order_label = final_order_label.tolist()
+        
+        for order in unmatched_order_list:
+            final_order_label.append([order, None, None])
+            
+        return final_order_label
 
 if __name__ == "__main__":
     train_data = pd.read_csv(config.train_data_drift_dup)
@@ -478,54 +506,7 @@ if __name__ == "__main__":
         mean_label_num=10, 
         vessel_name='vesselMMSI')
     
-    order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(test_data)
-    
-    # 匹配到的订单下标
-    matched_index_list = []
-    for i in range(len(order_list)):
-        length = trajectoryMatching.get_related_df_len(
-            trace_list[i][0], trace_list[i][1])
-        if length != 0:
-            matched_index_list.append(i)
-    
-    # 匹配到的订单df，！添加了order下标
-    matched_df_list = []
-    for i in matched_index_list[:]:
-        match_df = trajectoryMatching.get_related_df(
-            trace_list[i][0], trace_list[i][1])
-        matched_df_list.append([i, match_df])
-        
-    matched_order_list, matched_trace_list, matched_traj_list = [], [], []
-    for i in matched_index_list:
-        matched_order_list.append(order_list[i])
-        matched_trace_list.append(trace_list[i])
-        matched_traj_list.append(traj_list[i])
-        
-    # 路由中没有匹配到的轨迹
-    unmatched_index_list = [k for k in range(len(order_list)) if k not in matched_index_list]
-    unmatched_order_list = [order_list[i] for i in unmatched_index_list]
-    # # 修改内存在对象中的traj和label
-    # for data in matched_df_list[25:30]:
-    #     order = order_list[data[0]]
-        
-    #     train_df = data[1]
-    #     test_df = test_data[test_data['loadingOrder']==order]
-        
-    #     cutted_df = cutTrace.cut_trace_for_test(test_df, train_df, 80)
-    # print('开始剪切')
-    # test_data.groupby('loadingOrder').apply(lambda x: trajectoryMatching.modify_traj_label(x))
-    # print('剪切完毕')
-
-    matched_test_data = pd.DataFrame(
-        {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
-
-    final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
-        lambda x: trajectoryMatching.parallel_get_label(x, test_data))
-    final_order_label = final_order_label.tolist()
-    
-    
-    for order in unmatched_order_list:
-        final_order_label.append([order, None, None])
+    final_order_label = trajectoryMatching.process(test_data)
     
     with open(config.txt_file_dir_path + 'final_order_label_0714.txt', 'w')as f:
         f.write(str(final_order_label))
@@ -534,9 +515,6 @@ if __name__ == "__main__":
     for i in range(len(final_order_label)):
         final_order_label_dict[final_order_label[i][0]] = final_order_label[i][2]
 
-    for order in unmatched_order_list:
-        final_order_label_dict[order] = None
-        
     with open(config.txt_file_dir_path + 'final_order_label_dict_0714.txt', 'w')as f:
         f.write(str(final_order_label_dict))
         
