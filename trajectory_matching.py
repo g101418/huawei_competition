@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-14 22:06:34
+@LastEditTime: 2020-07-15 18:05:02
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -16,6 +16,7 @@ import geohash
 import itertools
 
 from pandarallel import pandarallel
+import yagmail
 
 import heapq
 
@@ -102,32 +103,27 @@ class TrajectoryMatching(object):
         # TODO 此处考虑增加相近港口
         # TODO 初步：考虑结果为空者
         # TODO 中级：考虑将不同起止点进行融合，考虑order重合现象
-        result = self.__cutTrace.get_use_indexs(start_port, end_port)
         
-        if len(result) == 0:
+        try:
             start_port_near_names = portsUtils.get_near_name(start_port)
             end_port_near_names = portsUtils.get_near_name(end_port)
             
-            if len(start_port_near_names) == 1 and len(end_port_near_names) == 1:
-                return None
-            
             near_name_pairs = [(i,j) for i in start_port_near_names for j in end_port_near_names]
-            
-            if len(near_name_pairs) == 0:
-                return None
             
             results = []
             for item in near_name_pairs:
                 result = self.__cutTrace.get_use_indexs(item[0], item[1])
-                results.append((result, len(result)))
-            results.sort(key=lambda x: x[1], reverse=True)
-            result = results[0][0]
+                results += result
+            results = list(set(results))
+            results.sort()
+        except:
+            print('处理near港错误')
 
         if len(result) == 0:
             return None
 
         # 得到相关训练集
-        match_df = self.train_data.loc[result]
+        match_df = self.train_data.loc[results]
         if reset_index == True:
             match_df = match_df.reset_index(drop=True)
 
@@ -270,13 +266,15 @@ class TrajectoryMatching(object):
             return 0
         return result.loadingOrder.nunique()
 
-    def get_final_label(self, order, trace, traj, test_data):
+    def get_final_label(self, order, trace, traj, test_data, for_parallel=False):
         """输入某一订单的订单名称、trace、轨迹，得到最相似轨迹的label并返回
         在调用此函数前，应该确认该trace存在相关轨迹！
         Args:
             order (str): 订单名
             trace (list): 1行2列list，分别是开始港、结束港
             traj (np.array): test的轨迹
+            test_data (pd.DataFrame): test集df，单个订单
+            for_parallel (bool, optional): 用于处理单条航线时并行化. Defaults to False.
 
         Returns:
             order, label (str, pd.Timedelta) :订单名称、时间差
@@ -290,7 +288,7 @@ class TrajectoryMatching(object):
                 if train_label_list is None:
                     return None, None
             else:
-                train_order_list, train_label_list, train_traj_list = self.modify_traj_label(test_data)
+                train_order_list, train_label_list, train_traj_list = self.modify_traj_label(test_data, for_parallel=for_parallel)
                 if train_label_list is None or len(train_label_list) == 0:
                     return None, None
         except:
@@ -317,11 +315,12 @@ class TrajectoryMatching(object):
             
         return train_order_list[min_traj_index], mean_label
 
-    def parallel_get_label(self, df, test_data):
+    def parallel_get_label(self, df, test_data, for_parallel=False):
         """用于并行化处理，得到order及label
 
         Args:
             df (pd.DataFrame): test集中相关数据构造的数据集的某一行
+            for_parallel (bool, optional): 用于处理单条航线时并行化. Defaults to False.
 
         Returns:
             [result_order, result_label] ([str, ]): 返回order及对应的label列表
@@ -332,7 +331,7 @@ class TrajectoryMatching(object):
 
         test_data_ = test_data[test_data['loadingOrder']==order]
         
-        result_order, result_label = self.get_final_label(order, trace, traj, test_data_)
+        result_order, result_label = self.get_final_label(order, trace, traj, test_data_, for_parallel=for_parallel)
         return [order, result_order, result_label]
 
     def get_related_traj(self, start_port, end_port):
@@ -388,12 +387,12 @@ class TrajectoryMatching(object):
                 return match_df
 
             
-    def modify_traj_label(self, df):
+    def modify_traj_label(self, df, for_parallel=False):
         """切割匹配到的训练集，得到相关轨迹和label
         
         Args:
             df (pd.DataFrame): test集df，只有单个loadingOrder
-
+            for_parallel (bool, optional): 用于处理单条航线时并行化. Defaults to False.
         Returns:
             [list, list, list]: 1行3列，3列分别是订单列、标签列、轨迹列
         """
@@ -423,16 +422,16 @@ class TrajectoryMatching(object):
                 if len(match_df_) != 0:
                     match_df_ = match_df_.reset_index(drop=True)
                     cutted_df = self.__cutTrace.cut_trace_for_test(
-                        df, match_df_, self.cut_distance_threshold, for_parallel=False)
+                        df, match_df_, self.cut_distance_threshold, for_parallel=for_parallel)
                     if len(cutted_df) == 0:
                         cutted_df = self.__cutTrace.cut_trace_for_test(
-                            df, match_df, self.cut_distance_threshold, for_parallel=False)
+                            df, match_df, self.cut_distance_threshold, for_parallel=for_parallel)
                 else:
                     cutted_df = self.__cutTrace.cut_trace_for_test(
-                        df, match_df, self.cut_distance_threshold, for_parallel=False)
+                        df, match_df, self.cut_distance_threshold, for_parallel=for_parallel)
             else:
                 cutted_df = self.__cutTrace.cut_trace_for_test(
-                    df, match_df, self.cut_distance_threshold, for_parallel=False)
+                    df, match_df, self.cut_distance_threshold, for_parallel=for_parallel)
         except:
             print('船号匹配处错误，test_order:',order)
         
@@ -452,11 +451,50 @@ class TrajectoryMatching(object):
         
         return [order_list, label_list, traj_list]
 
+    def process(self, test_data):
+        order_list, trace_list, traj_list = self.get_test_trace(test_data)
+        
+        # 匹配到的订单下标
+        matched_index_list = []
+        for i in range(len(order_list)):
+            length = trajectoryMatching.get_related_df_len(
+                trace_list[i][0], trace_list[i][1])
+            if length != 0:
+                matched_index_list.append(i)
+        
+        # 匹配到的订单df，！添加了order下标
+        matched_df_list = []
+        for i in matched_index_list[:]:
+            match_df = trajectoryMatching.get_related_df(
+                trace_list[i][0], trace_list[i][1])
+            matched_df_list.append([i, match_df])
+            
+        matched_order_list, matched_trace_list, matched_traj_list = [], [], []
+        for i in matched_index_list:
+            matched_order_list.append(order_list[i])
+            matched_trace_list.append(trace_list[i])
+            matched_traj_list.append(traj_list[i])
+            
+        # 路由中没有匹配到的轨迹
+        unmatched_index_list = [k for k in range(len(order_list)) if k not in matched_index_list]
+        unmatched_order_list = [order_list[i] for i in unmatched_index_list]
+        
+        matched_test_data = pd.DataFrame(
+            {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
+
+        final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
+            lambda x: trajectoryMatching.parallel_get_label(x, test_data))
+        final_order_label = final_order_label.tolist()
+        
+        for order in unmatched_order_list:
+            final_order_label.append([order, None, None])
+            
+        return final_order_label
 
 if __name__ == "__main__":
     train_data = pd.read_csv(config.train_data_drift_dup)
 
-    test_data = pd.read_csv(config.test_data_path)
+    test_data = pd.read_csv(config.test_data_drift)
 
     pandarallel.initialize(nb_workers=config.nb_workers)
 
@@ -468,47 +506,7 @@ if __name__ == "__main__":
         mean_label_num=10, 
         vessel_name='vesselMMSI')
     
-    order_list, trace_list, traj_list = trajectoryMatching.get_test_trace(test_data)
-    
-    # 匹配到的订单下标
-    matched_index_list = []
-    for i in range(len(order_list)):
-        length = trajectoryMatching.get_related_df_len(
-            trace_list[i][0], trace_list[i][1])
-        if length != 0:
-            matched_index_list.append(i)
-    
-    # 匹配到的订单df，！添加了order下标
-    matched_df_list = []
-    for i in matched_index_list[:]:
-        match_df = trajectoryMatching.get_related_df(
-            trace_list[i][0], trace_list[i][1])
-        matched_df_list.append([i, match_df])
-        
-    matched_order_list, matched_trace_list, matched_traj_list = [], [], []
-    for i in matched_index_list:
-        matched_order_list.append(order_list[i])
-        matched_trace_list.append(trace_list[i])
-        matched_traj_list.append(traj_list[i])
-        
-    # # 修改内存在对象中的traj和label
-    # for data in matched_df_list[25:30]:
-    #     order = order_list[data[0]]
-        
-    #     train_df = data[1]
-    #     test_df = test_data[test_data['loadingOrder']==order]
-        
-    #     cutted_df = cutTrace.cut_trace_for_test(test_df, train_df, 80)
-    # print('开始剪切')
-    # test_data.groupby('loadingOrder').apply(lambda x: trajectoryMatching.modify_traj_label(x))
-    # print('剪切完毕')
-
-    matched_test_data = pd.DataFrame(
-        {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
-
-    final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
-        lambda x: trajectoryMatching.parallel_get_label(x, test_data))
-    final_order_label = final_order_label.tolist()
+    final_order_label = trajectoryMatching.process(test_data)
     
     with open(config.txt_file_dir_path + 'final_order_label_0714.txt', 'w')as f:
         f.write(str(final_order_label))
@@ -520,6 +518,8 @@ if __name__ == "__main__":
     with open(config.txt_file_dir_path + 'final_order_label_dict_0714.txt', 'w')as f:
         f.write(str(final_order_label_dict))
         
+    # yag=yagmail.SMTP(user='gao101418@163.com', password='XXXXXXXXXXX', host='smtp.163.com')
+    # yag.send(to=['1014186239@qq.com'], subject='traj_match 运行完毕', contents=['程序运行完毕'])
     
 # TODO 别名处理
 # TODO 无用代码删除

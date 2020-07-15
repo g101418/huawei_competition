@@ -8,5 +8,6 @@
  'PACOL': 'PAMIT',
  'EGPSD': 'EGPSE',
  'PAONX': 'PAMIT',
- 'HON': 'CNHKG'
+ 'HON': 'CNHKG',
+ 'HUNGARY': 'HRRIJ'
  }

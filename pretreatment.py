@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-07-14 10:13:17
-@LastEditTime: 2020-07-14 12:49:10
+@LastEditTime: 2020-07-15 16:45:50
 @Description: 
 @FilePath: /HUAWEI_competition/pretreatment.py
 '''
@@ -21,7 +21,7 @@ class Pretreatment(object):
     # TODO PipeLine
     # TODO test集预处理：trace换名
     
-    def pipeline(self, stage, train_data=None):
+    def pipeline(self, stage, train_data=None, test_data=None):
         
         pandarallel.initialize(nb_workers=config.nb_workers)
         
@@ -29,9 +29,20 @@ class Pretreatment(object):
         if train_data is None:
             train_data = pd.read_csv(config.train_gps_path, header=None)
             train_data.columns = config.train_data_columns
-        # 1. 手工调整港口信息：a) port_points.txt b) test集数据trace别名替换
+            
+        if test_data is None:
+            test_data = pd.read_csv(config.test_data_path)
+        # 0. 手工调整港口信息：a) port_points.txt b) test集数据trace别名替换
+        
+        # 1. 对test集排序
         if 1 in stage:
-            pass
+            test_data.sort_values(['loadingOrder', 'timestamp'], inplace=True)
+            test_data = test_data.reset_index(drop=True)
+            
+            # 写回
+            test_data.to_csv(config.test_data_path, index=False)
+        
+        # 1.2 对test集去除漂移点
         
         # 2. 去重
         if 2 in stage:

@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-06-30 08:00:03
+@LastEditTime: 2020-07-15 17:23:29
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -190,14 +190,17 @@ class CutTrace(object):
                     try_lon, try_lat = df.loc[try_i][['longitude', 'latitude']].tolist()
                     return haversine(lon, lat, try_lon, try_lat)
                 if distance > up_limit:
-                    if start == True:
-                        if i + try_i < df.index[-1]:
-                            if try_dist(lon, lat, i + try_i) < up_limit:
-                                return True
-                    else:
-                        if i - try_i > start_index:
-                            if try_dist(lon, lat, i - try_i) < up_limit:
-                                return True
+                    try:
+                        if start == True:
+                            if i + try_i < df.index[-1]:
+                                if try_dist(lon, lat, i + try_i) < up_limit:
+                                    return True
+                        else:
+                            if i - try_i > start_index:
+                                if try_dist(lon, lat, i - try_i) < up_limit:
+                                    return True
+                    except:
+                        return False
                 return False
             
             start_index = -1

@@ -136,7 +136,8 @@ class PortsUtils(object):
     def get_near_name(self, port_name):
         for row in self.port_naer:
             if port_name in row:
-                return [k for k in row if k != port_name]
+                # return [k for k in row if k != port_name]
+                return [k for k in row]
 
         return [port_name]
 
