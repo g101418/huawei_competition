@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-14 22:06:34
+@LastEditTime: 2020-07-15 10:25:02
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -270,13 +270,15 @@ class TrajectoryMatching(object):
             return 0
         return result.loadingOrder.nunique()
 
-    def get_final_label(self, order, trace, traj, test_data):
+    def get_final_label(self, order, trace, traj, test_data, for_parallel=False):
         """输入某一订单的订单名称、trace、轨迹，得到最相似轨迹的label并返回
         在调用此函数前，应该确认该trace存在相关轨迹！
         Args:
             order (str): 订单名
             trace (list): 1行2列list，分别是开始港、结束港
             traj (np.array): test的轨迹
+            test_data (pd.DataFrame): test集df，单个订单
+            for_parallel (bool, optional): 用于处理单条航线时并行化. Defaults to False.
 
         Returns:
             order, label (str, pd.Timedelta) :订单名称、时间差
@@ -290,7 +292,7 @@ class TrajectoryMatching(object):
                 if train_label_list is None:
                     return None, None
             else:
-                train_order_list, train_label_list, train_traj_list = self.modify_traj_label(test_data)
+                train_order_list, train_label_list, train_traj_list = self.modify_traj_label(test_data, for_parallel=for_parallel)
                 if train_label_list is None or len(train_label_list) == 0:
                     return None, None
         except:
@@ -317,11 +319,12 @@ class TrajectoryMatching(object):
             
         return train_order_list[min_traj_index], mean_label
 
-    def parallel_get_label(self, df, test_data):
+    def parallel_get_label(self, df, test_data, for_parallel=False):
         """用于并行化处理，得到order及label
 
         Args:
             df (pd.DataFrame): test集中相关数据构造的数据集的某一行
+            for_parallel (bool, optional): 用于处理单条航线时并行化. Defaults to False.
 
         Returns:
             [result_order, result_label] ([str, ]): 返回order及对应的label列表
@@ -332,7 +335,7 @@ class TrajectoryMatching(object):
 
         test_data_ = test_data[test_data['loadingOrder']==order]
         
-        result_order, result_label = self.get_final_label(order, trace, traj, test_data_)
+        result_order, result_label = self.get_final_label(order, trace, traj, test_data_, for_parallel=for_parallel)
         return [order, result_order, result_label]
 
     def get_related_traj(self, start_port, end_port):
@@ -388,12 +391,12 @@ class TrajectoryMatching(object):
                 return match_df
 
             
-    def modify_traj_label(self, df):
+    def modify_traj_label(self, df, for_parallel=False):
         """切割匹配到的训练集，得到相关轨迹和label
         
         Args:
             df (pd.DataFrame): test集df，只有单个loadingOrder
-
+            for_parallel (bool, optional): 用于处理单条航线时并行化. Defaults to False.
         Returns:
             [list, list, list]: 1行3列，3列分别是订单列、标签列、轨迹列
         """
@@ -423,16 +426,16 @@ class TrajectoryMatching(object):
                 if len(match_df_) != 0:
                     match_df_ = match_df_.reset_index(drop=True)
                     cutted_df = self.__cutTrace.cut_trace_for_test(
-                        df, match_df_, self.cut_distance_threshold, for_parallel=False)
+                        df, match_df_, self.cut_distance_threshold, for_parallel=for_parallel)
                     if len(cutted_df) == 0:
                         cutted_df = self.__cutTrace.cut_trace_for_test(
-                            df, match_df, self.cut_distance_threshold, for_parallel=False)
+                            df, match_df, self.cut_distance_threshold, for_parallel=for_parallel)
                 else:
                     cutted_df = self.__cutTrace.cut_trace_for_test(
-                        df, match_df, self.cut_distance_threshold, for_parallel=False)
+                        df, match_df, self.cut_distance_threshold, for_parallel=for_parallel)
             else:
                 cutted_df = self.__cutTrace.cut_trace_for_test(
-                    df, match_df, self.cut_distance_threshold, for_parallel=False)
+                    df, match_df, self.cut_distance_threshold, for_parallel=for_parallel)
         except:
             print('船号匹配处错误，test_order:',order)
         
@@ -491,6 +494,9 @@ if __name__ == "__main__":
         matched_trace_list.append(trace_list[i])
         matched_traj_list.append(traj_list[i])
         
+    # 路由中没有匹配到的轨迹
+    unmatched_index_list = [k for k in range(len(order_list)) if k not in matched_index_list]
+    unmatched_order_list = [order_list[i] for i in unmatched_index_list]
     # # 修改内存在对象中的traj和label
     # for data in matched_df_list[25:30]:
     #     order = order_list[data[0]]
@@ -510,6 +516,10 @@ if __name__ == "__main__":
         lambda x: trajectoryMatching.parallel_get_label(x, test_data))
     final_order_label = final_order_label.tolist()
     
+    
+    for order in unmatched_order_list:
+        final_order_label.append([order, None, None])
+    
     with open(config.txt_file_dir_path + 'final_order_label_0714.txt', 'w')as f:
         f.write(str(final_order_label))
 
@@ -517,6 +527,9 @@ if __name__ == "__main__":
     for i in range(len(final_order_label)):
         final_order_label_dict[final_order_label[i][0]] = final_order_label[i][2]
 
+    for order in unmatched_order_list:
+        final_order_label_dict[order] = None
+        
     with open(config.txt_file_dir_path + 'final_order_label_dict_0714.txt', 'w')as f:
         f.write(str(final_order_label_dict))
         
