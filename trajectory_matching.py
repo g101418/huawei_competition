@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-15 10:25:02
+@LastEditTime: 2020-07-15 11:29:53
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -103,6 +103,12 @@ class TrajectoryMatching(object):
         # TODO 初步：考虑结果为空者
         # TODO 中级：考虑将不同起止点进行融合，考虑order重合现象
         result = self.__cutTrace.get_use_indexs(start_port, end_port)
+        
+        if len(result) != 0:
+            temp_df = self.train_data.loc[result]
+            order_num = temp_df.loadingOrder.nunique()
+            if order_num < 10:
+                result = []
         
         if len(result) == 0:
             start_port_near_names = portsUtils.get_near_name(start_port)
