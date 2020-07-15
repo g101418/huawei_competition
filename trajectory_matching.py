@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-15 11:29:53
+@LastEditTime: 2020-07-15 16:41:47
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -16,6 +16,7 @@ import geohash
 import itertools
 
 from pandarallel import pandarallel
+import yagmail
 
 import heapq
 
@@ -539,6 +540,8 @@ if __name__ == "__main__":
     with open(config.txt_file_dir_path + 'final_order_label_dict_0714.txt', 'w')as f:
         f.write(str(final_order_label_dict))
         
+    # yag=yagmail.SMTP(user='gao101418@163.com', password='XXXXXXXXXXX', host='smtp.163.com')
+    # yag.send(to=['1014186239@qq.com'], subject='traj_match 运行完毕', contents=['程序运行完毕'])
     
 # TODO 别名处理
 # TODO 无用代码删除

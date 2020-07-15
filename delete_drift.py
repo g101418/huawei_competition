@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-16 14:46:14
-@LastEditTime: 2020-07-14 16:13:23
+@LastEditTime: 2020-07-15 13:02:44
 @Description: 
 @FilePath: /HUAWEI_competition/delete_drift.py
 '''
@@ -21,7 +21,6 @@ class DriftPoint(object):
             speed_threshold (int, optional): 速度阈值，超过者删除. Defaults to 50.
         """
         super().__init__()
-        self.speed_threshold=speed_threshold
 
     def __get_delete_drift_point(self, df):
         """根据速度得到要删除的点
@@ -91,8 +90,8 @@ class DriftPoint(object):
         # ! 此处可能有bug
         delete_indexs = [j for i in delete_indexs for j in i]
 
-        df.drop(labels=delete_indexs, axis=0, inplace=True)
-        df.sort_values(['loadingOrder', 'timestamp'], inplace=True)
+        df = df.drop(labels=delete_indexs, axis=0)
+        df = df.sort_values(['loadingOrder', 'timestamp'])
         df = df.reset_index(drop=True)
         
         return df
