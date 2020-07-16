@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-07-15 17:23:29
+@LastEditTime: 2020-07-16 15:47:48
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -215,6 +215,8 @@ class CutTrace(object):
                     break
                 
                 # 用于加速
+                if limit_try(3000,1000,start=True): i += 1000; continue;
+                if limit_try(2000,700,start=True): i += 700; continue;
                 if limit_try(2000,400,start=True): i += 400; continue;
                 if limit_try(1000,200,start=True): i += 200; continue;
                 if limit_try(1000,100,start=True): i += 100; continue;
@@ -245,6 +247,8 @@ class CutTrace(object):
                         break
                     
                     # 用于加速
+                    if limit_try(3000,1000,end=True): i -= 1000; continue;
+                    if limit_try(2000,700,end=True): i -= 700; continue;
                     if limit_try(2000,400,end=True): i -= 400; continue;
                     if limit_try(1000,200,end=True): i -= 200; continue;
                     if limit_try(1000,100,end=True): i -= 100; continue;
