@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-16 16:41:53
+@LastEditTime: 2020-07-16 20:26:20
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -14,6 +14,8 @@ import pandas as pd
 import traj_dist.distance as tdist
 import geohash
 import itertools
+from datetime import datetime
+import time
 
 from pandarallel import pandarallel
 import yagmail
@@ -463,6 +465,8 @@ class TrajectoryMatching(object):
         return [order_list, label_list, traj_list]
 
     def process(self, test_data, order=None):
+        print('开始运行process函数')
+        print('当前时间：', time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
         order_list, trace_list, traj_list = self.get_test_trace(test_data)
         
         # 匹配到的订单下标
@@ -512,27 +516,31 @@ class TrajectoryMatching(object):
         unmatched_index_list = [k for k in range(len(order_list)) if k not in matched_index_list_all]
         unmatched_order_list = [order_list[i] for i in unmatched_index_list]
     
-        
+        print('切割前处理完毕')
+        print('当前时间：', time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
         # 
         final_order_label = []
         
         matched_test_data = pd.DataFrame(
             {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
-        
+        # TODO 疑问？此处用self无法并行化
         if len(matched_test_data) > 0:
             final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
-                lambda x: self.parallel_get_label(x, test_data))
+                lambda x: trajectoryMatching.parallel_get_label(x, test_data))
             final_order_label = final_order_label.tolist()
         
         # 
         top_N_final_order_label = []
         
+        print('开始单项并行')
+        print('当前时间：', time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
+        
         top_N_matched_test_data = pd.DataFrame(
             {'loadingOrder': top_N_matched_order_list, 'trace': top_N_matched_trace_list, 'traj': top_N_matched_traj_list})
-        
+        # TODO 疑问？此处用self可以并行化
         if len(top_N_matched_test_data) > 0:
             top_N_final_order_label = top_N_matched_test_data.groupby('loadingOrder').apply(
-                lambda x: self.parallel_get_label(x, test_data, for_parallel=True))
+                lambda x: trajectoryMatching.parallel_get_label(x, test_data, for_parallel=True))
             top_N_final_order_label = top_N_final_order_label.tolist()
         
         
@@ -540,7 +548,10 @@ class TrajectoryMatching(object):
         if order is None:
             for order in unmatched_order_list:
                 final_order_label.append([order, None, None])
-            
+        
+        print('全部处理完毕')
+        print('当前时间：', time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
+        
         return final_order_label
 
 if __name__ == "__main__":
@@ -591,3 +602,4 @@ if __name__ == "__main__":
     
 # TODO 别名处理
 # TODO 无用代码删除
+# TODO logging
