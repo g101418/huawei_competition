@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-16 12:17:00
+@LastEditTime: 2020-07-16 16:34:04
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -35,6 +35,7 @@ class TrajectoryMatching(object):
                  cut_distance_threshold=-1,
                  mean_label_num=1,
                  top_N_for_parallel=10,
+                 get_label_way='mean',
                  vessel_name=''):
         """初始化
 
@@ -56,6 +57,10 @@ class TrajectoryMatching(object):
         self.cut_distance_threshold = cut_distance_threshold
         self.__mean_label_num = mean_label_num
         self.__top_N_for_parallel = max(0, top_N_for_parallel)
+        if get_label_way in ['mean', 'min']:
+            self.__get_label_way = get_label_way
+        else:
+            self.__vessel_name = 'mean'
         if vessel_name in ['carrierName', 'vesselMMSI']:
             self.__vessel_name = vessel_name
         else:
@@ -308,8 +313,12 @@ class TrajectoryMatching(object):
             min_traj_index_3 = list(map(lambda x:cdist.index(x), 
                 heapq.nsmallest(min(len(train_label_list), self.__mean_label_num), cdist)))
             
-            mean_label_seconds = np.mean(list(map(lambda x: x.total_seconds(), 
-                list(np.array(train_label_list)[min_traj_index_3]))))
+            temp_list = list(map(lambda x: x.total_seconds(), 
+                          list(np.array(train_label_list)[min_traj_index_3])))
+            if self.__get_label_way == 'mean':
+                mean_label_seconds = np.mean(temp_list)
+            else:
+                mean_label_seconds = np.min(temp_list)
 
             mean_label = pd.Timedelta(seconds=mean_label_seconds)
         except:
@@ -541,27 +550,39 @@ if __name__ == "__main__":
 
     pandarallel.initialize(nb_workers=config.nb_workers)
 
-    trajectoryMatching = TrajectoryMatching(
-        train_data, 
-        geohash_precision=5, 
-        cut_distance_threshold=1.3, 
-        metric='sspd', 
-        mean_label_num=10, 
-        top_N_for_parallel=10,
-        vessel_name='vesselMMSI')
+    dict_name = '0716'
+    kwargs = {
+        'geohash_precision': 5, 
+        'cut_distance_threshold': 1.3, 
+        'metric': 'sspd', 
+        'mean_label_num': 10, 
+        'top_N_for_parallel': 10,
+        'get_label_way': 'mean',
+        'vessel_name': 'vesselMMSI'
+        }
+    contents = [key+'='+str(value) for key,value in kwargs.items()]
     
-    final_order_label = trajectoryMatching.process(test_data)
-    
-    with open(config.txt_file_dir_path + 'final_order_label_0714.txt', 'w')as f:
-        f.write(str(final_order_label))
-
-    final_order_label_dict = {}
-    for i in range(len(final_order_label)):
-        final_order_label_dict[final_order_label[i][0]] = final_order_label[i][2]
-
-    with open(config.txt_file_dir_path + 'final_order_label_dict_0714.txt', 'w')as f:
-        f.write(str(final_order_label_dict))
+    try:
+        trajectoryMatching = TrajectoryMatching(train_data, **kwargs)
         
+        final_order_label = trajectoryMatching.process(test_data)
+        
+        with open(config.txt_file_dir_path + 'final_order_label_'+dict_name+'.txt', 'w')as f:
+            f.write(str(final_order_label))
+
+        final_order_label_dict = {}
+        for i in range(len(final_order_label)):
+            final_order_label_dict[final_order_label[i][0]] = final_order_label[i][2]
+
+        with open(config.txt_file_dir_path + 'final_order_label_dict_'+dict_name+'.txt', 'w')as f:
+            f.write(str(final_order_label_dict))
+            
+    except:
+        yag=yagmail.SMTP(user='gao101418@163.com', password='XXXXX', host='smtp.163.com')
+        yag.send(to=['1014186239@qq.com'], subject='traj_match '+dict_name+' 出错', contents=contents)
+    else:
+        yag=yagmail.SMTP(user='gao101418@163.com', password='XXXXX', host='smtp.163.com')
+        yag.send(to=['1014186239@qq.com'], subject='traj_match '+dict_name+' 运行完毕', contents=contents)
     # yag=yagmail.SMTP(user='gao101418@163.com', password='XXXXXXXXXXX', host='smtp.163.com')
     # yag.send(to=['1014186239@qq.com'], subject='traj_match 运行完毕', contents=['程序运行完毕'])
     
