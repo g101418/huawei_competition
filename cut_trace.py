@@ -1,7 +1,11 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-07-16 14:32:47
+<<<<<<< HEAD
+@LastEditTime: 2020-07-16 15:50:25
+=======
+@LastEditTime: 2020-07-16 15:47:48
+>>>>>>> err
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -202,18 +206,7 @@ class CutTrace(object):
                     except:
                         return False
                 return False
-            def limit_try_pass(skip, cur_try, up_limit, try_i, start=False, end=False):
-                if skip > 0:
-                    return cur_try, skip
-                if cur_try >= try_i:
-                    if limit_try(up_limit, try_i, start=start, end=end): 
-                        return try_i, try_i
-                    else: 
-                        return try_i-1, 0
-                else:
-                    return cur_try, -1
-                
-            cur_try = 100000
+
             start_index = -1
             i = df.index[0]
             while i < df.index[-1]:
@@ -224,52 +217,21 @@ class CutTrace(object):
                 if distance <= threshold:
                     start_index = i
                     break
-                skip = -2
                 # 用于加速
-                cur_try, skip = limit_try_pass(skip, cur_try, 3000, 5000, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 3000, 4750, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 3000, 4500, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 3000, 4250, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 3000, 4000, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 3000, 3750, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 3000, 3500, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 3000, 3250, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 3000, 3000, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 3000, 2500, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 3000, 2200, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 3000, 2000, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 3000, 1800, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 3000, 1600, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 3000, 1400, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 2000, 1200, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 2000, 1000, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 2000, 800, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 2000, 600, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 2000, 400, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 2000, 300, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 1500, 250, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 1500, 220, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 1000, 200, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 1000, 175, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 1000, 150, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 1000, 100, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 1000, 75, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 1000, 50, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 1000, 30, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 1000, 20, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 200, 17, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 200, 15, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 200, 12, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 200, 10, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 200, 7, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 200, 5, start=True)
-                cur_try, skip = limit_try_pass(skip, cur_try, 200, 3, start=True)
-                
-                if skip > 0:
-                    i += skip
-                    continue
-                
-                if limit_try(threshold,20,start=True): i += 10; continue;
+
+                if limit_try(3000,1000,start=True): i += 1000; continue;
+                if limit_try(2000,700,start=True): i += 700; continue;
+                if limit_try(2000,400,start=True): i += 400; continue;
+                if limit_try(1000,200,start=True): i += 200; continue;
+                if limit_try(1000,100,start=True): i += 100; continue;
+                if limit_try(1000,50,start=True): i += 50; continue;
+                if limit_try(1000,30,start=True): i += 30; continue;
+                if limit_try(1000,20,start=True): i += 20; continue;
+                if limit_try(200,10,start=True): i += 10; continue;
+                if limit_try(200,5,start=True): i += 5; continue;
+                if limit_try(200,2,start=True): i += 2; continue;
+
+                if limit_try(threshold,20,start=True): i += 20; continue;
                 if limit_try(threshold,10,start=True): i += 10; continue;
                 if limit_try(threshold,5,start=True): i += 5; continue;
                 if limit_try(threshold,2,start=True): i += 2; continue;
@@ -281,7 +243,6 @@ class CutTrace(object):
                 # ! 结束
             end_index = -1
             if start_index != -1:
-                cur_try = 1000000
                 i = df.index[-1]
                 while i > start_index:
                 # for i in range(df.index[-1], start_index, -1):
@@ -290,51 +251,21 @@ class CutTrace(object):
                     if distance <= threshold:
                         end_index = i
                         break
-                    skip = -2
+                    
                     # 用于加速
-                    cur_try, skip = limit_try_pass(skip, cur_try, 3000, 5000, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 3000, 4750, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 3000, 4500, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 3000, 4250, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 3000, 4000, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 3000, 3750, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 3000, 3500, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 3000, 3250, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 3000, 3000, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 3000, 2500, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 3000, 2200, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 3000, 2000, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 3000, 1800, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 3000, 1600, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 3000, 1400, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 2000, 1200, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 2000, 1000, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 2000, 800, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 2000, 600, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 2000, 400, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 2000, 300, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 1500, 250, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 1500, 220, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 1000, 200, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 1000, 175, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 1000, 150, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 1000, 100, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 1000, 75, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 1000, 50, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 1000, 30, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 1000, 20, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 200, 17, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 200, 15, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 200, 12, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 200, 10, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 200, 7, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 200, 5, end=True)
-                    cur_try, skip = limit_try_pass(skip, cur_try, 200, 3, end=True)
-                    
-                    if skip > 0:
-                        i -= skip
-                        continue
-                    
+
+                    if limit_try(3000,1000,end=True): i -= 1000; continue;
+                    if limit_try(2000,700,end=True): i -= 700; continue;
+                    if limit_try(2000,400,end=True): i -= 400; continue;
+                    if limit_try(1000,200,end=True): i -= 200; continue;
+                    if limit_try(1000,100,end=True): i -= 100; continue;
+                    if limit_try(1000,50,end=True): i -= 50; continue;
+                    if limit_try(1000,30,end=True): i -= 30; continue;
+                    if limit_try(1000,20,end=True): i -= 20; continue;
+                    if limit_try(200,10,end=True): i -= 10; continue;
+                    if limit_try(200,5,end=True): i -= 5; continue;
+                    if limit_try(200,2,end=True): i -= 2; continue;
+
                     if limit_try(threshold,20,end=True): i -= 20; continue;
                     if limit_try(threshold,10,end=True): i -= 10; continue;
                     if limit_try(threshold,5,end=True): i -= 5; continue;
