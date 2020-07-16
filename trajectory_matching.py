@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-16 16:34:04
+@LastEditTime: 2020-07-16 16:41:53
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -544,9 +544,11 @@ class TrajectoryMatching(object):
         return final_order_label
 
 if __name__ == "__main__":
-    train_data = pd.read_csv(config.train_data_drift_dup)
-
-    test_data = pd.read_csv(config.test_data_drift)
+    train_data_path = config.train_data_drift_dup
+    test_data_path = config.test_data_drift
+    
+    train_data = pd.read_csv(train_data_path)
+    test_data = pd.read_csv(test_data_path)
 
     pandarallel.initialize(nb_workers=config.nb_workers)
 
@@ -555,12 +557,13 @@ if __name__ == "__main__":
         'geohash_precision': 5, 
         'cut_distance_threshold': 1.3, 
         'metric': 'sspd', 
-        'mean_label_num': 10, 
-        'top_N_for_parallel': 10,
-        'get_label_way': 'mean',
-        'vessel_name': 'vesselMMSI'
+        'mean_label_num': 40, 
+        'top_N_for_parallel': 20,
+        'get_label_way': 'min',
+        'vessel_name': '__'
         }
     contents = [key+'='+str(value) for key,value in kwargs.items()]
+    contents += ['train_data_path'+'='+train_data_path, 'test_data_path'+'='+test_data_path]
     
     try:
         trajectoryMatching = TrajectoryMatching(train_data, **kwargs)
