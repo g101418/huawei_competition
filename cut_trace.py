@@ -1,7 +1,11 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-@LastEditTime: 2020-07-15 17:23:29
+<<<<<<< HEAD
+@LastEditTime: 2020-07-16 15:50:25
+=======
+@LastEditTime: 2020-07-16 15:47:48
+>>>>>>> err
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -202,7 +206,7 @@ class CutTrace(object):
                     except:
                         return False
                 return False
-            
+
             start_index = -1
             i = df.index[0]
             while i < df.index[-1]:
@@ -213,8 +217,10 @@ class CutTrace(object):
                 if distance <= threshold:
                     start_index = i
                     break
-                
                 # 用于加速
+
+                if limit_try(3000,1000,start=True): i += 1000; continue;
+                if limit_try(2000,700,start=True): i += 700; continue;
                 if limit_try(2000,400,start=True): i += 400; continue;
                 if limit_try(1000,200,start=True): i += 200; continue;
                 if limit_try(1000,100,start=True): i += 100; continue;
@@ -224,6 +230,8 @@ class CutTrace(object):
                 if limit_try(200,10,start=True): i += 10; continue;
                 if limit_try(200,5,start=True): i += 5; continue;
                 if limit_try(200,2,start=True): i += 2; continue;
+
+                if limit_try(threshold,20,start=True): i += 20; continue;
                 if limit_try(threshold,10,start=True): i += 10; continue;
                 if limit_try(threshold,5,start=True): i += 5; continue;
                 if limit_try(threshold,2,start=True): i += 2; continue;
@@ -245,6 +253,9 @@ class CutTrace(object):
                         break
                     
                     # 用于加速
+
+                    if limit_try(3000,1000,end=True): i -= 1000; continue;
+                    if limit_try(2000,700,end=True): i -= 700; continue;
                     if limit_try(2000,400,end=True): i -= 400; continue;
                     if limit_try(1000,200,end=True): i -= 200; continue;
                     if limit_try(1000,100,end=True): i -= 100; continue;
@@ -254,6 +265,8 @@ class CutTrace(object):
                     if limit_try(200,10,end=True): i -= 10; continue;
                     if limit_try(200,5,end=True): i -= 5; continue;
                     if limit_try(200,2,end=True): i -= 2; continue;
+
+                    if limit_try(threshold,20,end=True): i -= 20; continue;
                     if limit_try(threshold,10,end=True): i -= 10; continue;
                     if limit_try(threshold,5,end=True): i -= 5; continue;
                     if limit_try(threshold,2,end=True): i -= 2; continue;

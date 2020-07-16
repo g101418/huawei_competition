@@ -1,7 +1,7 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-15 18:05:02
+@LastEditTime: 2020-07-16 12:17:00
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
@@ -34,6 +34,7 @@ class TrajectoryMatching(object):
                  metric="sspd",
                  cut_distance_threshold=-1,
                  mean_label_num=1,
+                 top_N_for_parallel=10,
                  vessel_name=''):
         """初始化
 
@@ -54,6 +55,7 @@ class TrajectoryMatching(object):
         self.__metric = metric
         self.cut_distance_threshold = cut_distance_threshold
         self.__mean_label_num = mean_label_num
+        self.__top_N_for_parallel = max(0, top_N_for_parallel)
         if vessel_name in ['carrierName', 'vesselMMSI']:
             self.__vessel_name = vessel_name
         else:
@@ -119,7 +121,7 @@ class TrajectoryMatching(object):
         except:
             print('处理near港错误')
 
-        if len(result) == 0:
+        if len(results) == 0:
             return None
 
         # 得到相关训练集
@@ -382,7 +384,7 @@ class TrajectoryMatching(object):
 
             if match_df is not None:
                 self.match_df_dict[trace_str] = match_df.copy()
-                return match_df
+                return self.match_df_dict[trace_str]
             else:
                 return match_df
 
@@ -451,43 +453,84 @@ class TrajectoryMatching(object):
         
         return [order_list, label_list, traj_list]
 
-    def process(self, test_data):
+    def process(self, test_data, order=None):
         order_list, trace_list, traj_list = self.get_test_trace(test_data)
         
         # 匹配到的订单下标
-        matched_index_list = []
-        for i in range(len(order_list)):
-            length = trajectoryMatching.get_related_df_len(
-                trace_list[i][0], trace_list[i][1])
+        matched_index_list_all = []
+        length_list = []
+        if order is None:
+            for i in range(len(order_list)):
+                length = self.get_related_df_len(
+                    trace_list[i][0], trace_list[i][1])
+                length_list.append(length)
+                if length != 0:
+                    matched_index_list_all.append(i)
+        else:
+            order_index = order_list.index(order)
+            length = self.get_related_df_len(trace_list[order_index][0], trace_list[order_index][1])
+            length_list = [-1] * order_index
+            length_list.append(length)
             if length != 0:
-                matched_index_list.append(i)
-        
-        # 匹配到的订单df，！添加了order下标
-        matched_df_list = []
-        for i in matched_index_list[:]:
-            match_df = trajectoryMatching.get_related_df(
-                trace_list[i][0], trace_list[i][1])
-            matched_df_list.append([i, match_df])
+                matched_index_list_all.append(order_index)
+            else:
+                print('匹配轨迹长度为0')
+                return [[order, None, None]]
             
+            
+        max_length = max(length_list)
+        top_N_length_index = [i for i,x in enumerate(length_list) if x == max_length ]
+        top_N_length_index = top_N_length_index[:min(len(top_N_length_index), self.__top_N_for_parallel)]
+
+        matched_index_list = [k for k in matched_index_list_all if k not in top_N_length_index]
+        
+        
         matched_order_list, matched_trace_list, matched_traj_list = [], [], []
         for i in matched_index_list:
             matched_order_list.append(order_list[i])
             matched_trace_list.append(trace_list[i])
             matched_traj_list.append(traj_list[i])
-            
+        
+        top_N_matched_order_list, top_N_matched_trace_list, top_N_matched_traj_list = [], [], []
+        for i in top_N_length_index:
+            top_N_matched_order_list.append(order_list[i])
+            top_N_matched_trace_list.append(trace_list[i])
+            top_N_matched_traj_list.append(traj_list[i])
+        
+        
+        
         # 路由中没有匹配到的轨迹
-        unmatched_index_list = [k for k in range(len(order_list)) if k not in matched_index_list]
+        unmatched_index_list = [k for k in range(len(order_list)) if k not in matched_index_list_all]
         unmatched_order_list = [order_list[i] for i in unmatched_index_list]
+    
+        
+        # 
+        final_order_label = []
         
         matched_test_data = pd.DataFrame(
             {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
-
-        final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
-            lambda x: trajectoryMatching.parallel_get_label(x, test_data))
-        final_order_label = final_order_label.tolist()
         
-        for order in unmatched_order_list:
-            final_order_label.append([order, None, None])
+        if len(matched_test_data) > 0:
+            final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
+                lambda x: self.parallel_get_label(x, test_data))
+            final_order_label = final_order_label.tolist()
+        
+        # 
+        top_N_final_order_label = []
+        
+        top_N_matched_test_data = pd.DataFrame(
+            {'loadingOrder': top_N_matched_order_list, 'trace': top_N_matched_trace_list, 'traj': top_N_matched_traj_list})
+        
+        if len(top_N_matched_test_data) > 0:
+            top_N_final_order_label = top_N_matched_test_data.groupby('loadingOrder').apply(
+                lambda x: self.parallel_get_label(x, test_data, for_parallel=True))
+            top_N_final_order_label = top_N_final_order_label.tolist()
+        
+        
+        final_order_label += top_N_final_order_label
+        if order is None:
+            for order in unmatched_order_list:
+                final_order_label.append([order, None, None])
             
         return final_order_label
 
@@ -504,6 +547,7 @@ if __name__ == "__main__":
         cut_distance_threshold=1.3, 
         metric='sspd', 
         mean_label_num=10, 
+        top_N_for_parallel=10,
         vessel_name='vesselMMSI')
     
     final_order_label = trajectoryMatching.process(test_data)
