@@ -28,6 +28,7 @@ class Config:
         self.train_data_dup = self.data_dir_path + 'train_dup.csv'
         self.train_data_drift_dup = self.data_dir_path + 'train_drift_dup.csv'
         
+        
         self.train_data_drift_dup_drop = self.data_dir_path + '_train_drift.csv'
         self.train_data_drift = self.data_dir_path + 'train_drift.csv'
         
@@ -43,6 +44,11 @@ class Config:
         self.port_map_dict_filename = self.tool_file_dir_path + 'port_map_dict.txt'
         # self.all_port_points_filename='./tool_file/all_port_points.txt'
         self.all_port_points_filename = self.tool_file_dir_path + 'new_port_points.txt'
+        
+        # 包含匹配到轨迹相关港口比例的全部数据，字典
+        self.matched_port_dict_filename = self.tool_file_dir_path + 'matched_port_dict.txt'
+        # 截留最大比例后，残余400项，字典，只有order名
+        self.max_length_matched_port_filename = self.tool_file_dir_path + 'max_length_matched_port.txt'
         
         self.port_alias_filename = self.tool_file_dir_path + 'port_alias.txt'
         self.port_near_filename = self.tool_file_dir_path + 'port_near.txt'
