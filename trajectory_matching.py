@@ -17,6 +17,7 @@ import geohash
 import itertools
 from datetime import datetime
 import time
+import traceback
 
 from pandarallel import pandarallel
 import yagmail
@@ -127,6 +128,7 @@ class TrajectoryMatching(object):
             results = list(set(results))
             results.sort()
         except:
+            traceback.print_exc()
             print('处理near港错误')
 
         if len(results) == 0:
@@ -302,6 +304,7 @@ class TrajectoryMatching(object):
                 if train_label_list is None or len(train_label_list) == 0:
                     return None, None
         except:
+            traceback.print_exc()
             print('error:', order, 'modify_traj_label')
             
         try:
@@ -309,6 +312,7 @@ class TrajectoryMatching(object):
                 [traj], train_traj_list, metric=self.__metric)[0])
             min_traj_index = cdist.index(min(cdist))
         except:
+            traceback.print_exc()
             print('error:', order, 'tdist.cdist')
             return None,None
         
@@ -325,6 +329,7 @@ class TrajectoryMatching(object):
 
             mean_label = pd.Timedelta(seconds=mean_label_seconds)
         except:
+            traceback.print_exc()
             print('求取平均值错误:', order)
             
         return train_order_list[min_traj_index], mean_label
@@ -414,6 +419,7 @@ class TrajectoryMatching(object):
         # 该函数用于并行化处理
         order = df.loc[df.index[0],'loadingOrder']
         
+        trace_ = df.loc[df.index[0],'TRANSPORT_TRACE']
         trace = df.loc[df.index[0],'TRANSPORT_TRACE'].split('-')
         
         strat_port = portsUtils.get_alias_name(trace[0])
@@ -428,6 +434,9 @@ class TrajectoryMatching(object):
         
         if len(match_df) == 0:
             return [None, None, None]
+        
+        port_match_orders = portMatching.get_max_match_ports(trace_, cut_num=400)
+        match_df = match_df[match_df['loadingOrder'].isin(port_match_orders)].reset_index(drop=True)
         
         try:
             if len(self.__vessel_name) > 0:
@@ -595,6 +604,7 @@ if __name__ == "__main__":
     except:
         yag=yagmail.SMTP(user='gao101418@163.com', password='XXXXX', host='smtp.163.com')
         yag.send(to=['1014186239@qq.com'], subject='traj_match '+dict_name+' 出错', contents=contents)
+        traceback.print_exc()
     else:
         yag=yagmail.SMTP(user='gao101418@163.com', password='XXXXX', host='smtp.163.com')
         yag.send(to=['1014186239@qq.com'], subject='traj_match '+dict_name+' 运行完毕', contents=contents)
