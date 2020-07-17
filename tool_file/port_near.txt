@@ -1,3 +1,4 @@
 [{'HKHKG', 'CNHKG', 'CNYTN', 'CNSHK', 'CNDCB', 'CNNSA'},
-{'SGSIN', 'MYTPP'}
+{'SGSIN', 'MYTPP'},
+{'CNYGS', 'CNSHA'}
 ]
