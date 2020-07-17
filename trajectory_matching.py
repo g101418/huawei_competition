@@ -8,6 +8,7 @@
 from cut_trace import CutTrace
 from utils import portsUtils
 from config import config
+from port_matching import portMatching
 
 import numpy as np
 import pandas as pd

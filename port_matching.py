@@ -105,3 +105,9 @@ class PortMatching(object):
             return remain_order[:cut_num]
         
         return result
+    
+    def get_max_match_ports(self, trace, cut_num=400):
+        
+        return self.match(trace, cut_num=cut_num)
+    
+portMatching = PortMatching()
