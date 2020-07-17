@@ -1,19 +1,23 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 18:09:10
-@LastEditTime: 2020-07-16 12:17:00
+@LastEditTime: 2020-07-16 20:26:20
 @Description: 
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
 from cut_trace import CutTrace
 from utils import portsUtils
 from config import config
+from port_matching import portMatching
 
 import numpy as np
 import pandas as pd
 import traj_dist.distance as tdist
 import geohash
 import itertools
+from datetime import datetime
+import time
+import traceback
 
 from pandarallel import pandarallel
 import yagmail
@@ -35,6 +39,7 @@ class TrajectoryMatching(object):
                  cut_distance_threshold=-1,
                  mean_label_num=1,
                  top_N_for_parallel=10,
+                 get_label_way='mean',
                  vessel_name=''):
         """初始化
 
@@ -56,6 +61,10 @@ class TrajectoryMatching(object):
         self.cut_distance_threshold = cut_distance_threshold
         self.__mean_label_num = mean_label_num
         self.__top_N_for_parallel = max(0, top_N_for_parallel)
+        if get_label_way in ['mean', 'min']:
+            self.__get_label_way = get_label_way
+        else:
+            self.__vessel_name = 'mean'
         if vessel_name in ['carrierName', 'vesselMMSI']:
             self.__vessel_name = vessel_name
         else:
@@ -119,6 +128,7 @@ class TrajectoryMatching(object):
             results = list(set(results))
             results.sort()
         except:
+            traceback.print_exc()
             print('处理near港错误')
 
         if len(results) == 0:
@@ -294,6 +304,7 @@ class TrajectoryMatching(object):
                 if train_label_list is None or len(train_label_list) == 0:
                     return None, None
         except:
+            traceback.print_exc()
             print('error:', order, 'modify_traj_label')
             
         try:
@@ -301,6 +312,7 @@ class TrajectoryMatching(object):
                 [traj], train_traj_list, metric=self.__metric)[0])
             min_traj_index = cdist.index(min(cdist))
         except:
+            traceback.print_exc()
             print('error:', order, 'tdist.cdist')
             return None,None
         
@@ -308,11 +320,16 @@ class TrajectoryMatching(object):
             min_traj_index_3 = list(map(lambda x:cdist.index(x), 
                 heapq.nsmallest(min(len(train_label_list), self.__mean_label_num), cdist)))
             
-            mean_label_seconds = np.mean(list(map(lambda x: x.total_seconds(), 
-                list(np.array(train_label_list)[min_traj_index_3]))))
+            temp_list = list(map(lambda x: x.total_seconds(), 
+                          list(np.array(train_label_list)[min_traj_index_3])))
+            if self.__get_label_way == 'mean':
+                mean_label_seconds = np.mean(temp_list)
+            else:
+                mean_label_seconds = np.min(temp_list)
 
             mean_label = pd.Timedelta(seconds=mean_label_seconds)
         except:
+            traceback.print_exc()
             print('求取平均值错误:', order)
             
         return train_order_list[min_traj_index], mean_label
@@ -402,6 +419,7 @@ class TrajectoryMatching(object):
         # 该函数用于并行化处理
         order = df.loc[df.index[0],'loadingOrder']
         
+        trace_ = df.loc[df.index[0],'TRANSPORT_TRACE']
         trace = df.loc[df.index[0],'TRANSPORT_TRACE'].split('-')
         
         strat_port = portsUtils.get_alias_name(trace[0])
@@ -416,6 +434,9 @@ class TrajectoryMatching(object):
         
         if len(match_df) == 0:
             return [None, None, None]
+        
+        port_match_orders = portMatching.get_max_match_ports(trace_, cut_num=400)
+        match_df = match_df[match_df['loadingOrder'].isin(port_match_orders)].reset_index(drop=True)
         
         try:
             if len(self.__vessel_name) > 0:
@@ -454,6 +475,8 @@ class TrajectoryMatching(object):
         return [order_list, label_list, traj_list]
 
     def process(self, test_data, order=None):
+        print('开始运行process函数')
+        print('当前时间：', time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
         order_list, trace_list, traj_list = self.get_test_trace(test_data)
         
         # 匹配到的订单下标
@@ -503,27 +526,31 @@ class TrajectoryMatching(object):
         unmatched_index_list = [k for k in range(len(order_list)) if k not in matched_index_list_all]
         unmatched_order_list = [order_list[i] for i in unmatched_index_list]
     
-        
+        print('切割前处理完毕')
+        print('当前时间：', time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
         # 
         final_order_label = []
         
         matched_test_data = pd.DataFrame(
             {'loadingOrder': matched_order_list, 'trace': matched_trace_list, 'traj': matched_traj_list})
-        
+        # TODO 疑问？此处用self无法并行化
         if len(matched_test_data) > 0:
             final_order_label = matched_test_data.groupby('loadingOrder').parallel_apply(
-                lambda x: self.parallel_get_label(x, test_data))
+                lambda x: trajectoryMatching.parallel_get_label(x, test_data))
             final_order_label = final_order_label.tolist()
         
         # 
         top_N_final_order_label = []
         
+        print('开始单项并行')
+        print('当前时间：', time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
+        
         top_N_matched_test_data = pd.DataFrame(
             {'loadingOrder': top_N_matched_order_list, 'trace': top_N_matched_trace_list, 'traj': top_N_matched_traj_list})
-        
+        # TODO 疑问？此处用self可以并行化
         if len(top_N_matched_test_data) > 0:
             top_N_final_order_label = top_N_matched_test_data.groupby('loadingOrder').apply(
-                lambda x: self.parallel_get_label(x, test_data, for_parallel=True))
+                lambda x: trajectoryMatching.parallel_get_label(x, test_data, for_parallel=True))
             top_N_final_order_label = top_N_final_order_label.tolist()
         
         
@@ -531,39 +558,59 @@ class TrajectoryMatching(object):
         if order is None:
             for order in unmatched_order_list:
                 final_order_label.append([order, None, None])
-            
+        
+        print('全部处理完毕')
+        print('当前时间：', time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
+        
         return final_order_label
 
 if __name__ == "__main__":
-    train_data = pd.read_csv(config.train_data_drift_dup)
-
-    test_data = pd.read_csv(config.test_data_drift)
+    train_data_path = config.train_data_drift_dup
+    test_data_path = config.test_data_drift
+    
+    train_data = pd.read_csv(train_data_path)
+    test_data = pd.read_csv(test_data_path)
 
     pandarallel.initialize(nb_workers=config.nb_workers)
 
-    trajectoryMatching = TrajectoryMatching(
-        train_data, 
-        geohash_precision=5, 
-        cut_distance_threshold=1.3, 
-        metric='sspd', 
-        mean_label_num=10, 
-        top_N_for_parallel=10,
-        vessel_name='vesselMMSI')
+    dict_name = '0716'
+    kwargs = {
+        'geohash_precision': 5, 
+        'cut_distance_threshold': 1.3, 
+        'metric': 'sspd', 
+        'mean_label_num': 40, 
+        'top_N_for_parallel': 20,
+        'get_label_way': 'min',
+        'vessel_name': '__'
+        }
+    contents = [key+'='+str(value) for key,value in kwargs.items()]
+    contents += ['train_data_path'+'='+train_data_path, 'test_data_path'+'='+test_data_path]
     
-    final_order_label = trajectoryMatching.process(test_data)
-    
-    with open(config.txt_file_dir_path + 'final_order_label_0714.txt', 'w')as f:
-        f.write(str(final_order_label))
-
-    final_order_label_dict = {}
-    for i in range(len(final_order_label)):
-        final_order_label_dict[final_order_label[i][0]] = final_order_label[i][2]
-
-    with open(config.txt_file_dir_path + 'final_order_label_dict_0714.txt', 'w')as f:
-        f.write(str(final_order_label_dict))
+    try:
+        trajectoryMatching = TrajectoryMatching(train_data, **kwargs)
         
+        final_order_label = trajectoryMatching.process(test_data)
+        
+        with open(config.txt_file_dir_path + 'final_order_label_'+dict_name+'.txt', 'w')as f:
+            f.write(str(final_order_label))
+
+        final_order_label_dict = {}
+        for i in range(len(final_order_label)):
+            final_order_label_dict[final_order_label[i][0]] = final_order_label[i][2]
+
+        with open(config.txt_file_dir_path + 'final_order_label_dict_'+dict_name+'.txt', 'w')as f:
+            f.write(str(final_order_label_dict))
+            
+    except:
+        yag=yagmail.SMTP(user='gao101418@163.com', password='XXXXX', host='smtp.163.com')
+        yag.send(to=['1014186239@qq.com'], subject='traj_match '+dict_name+' 出错', contents=contents)
+        traceback.print_exc()
+    else:
+        yag=yagmail.SMTP(user='gao101418@163.com', password='XXXXX', host='smtp.163.com')
+        yag.send(to=['1014186239@qq.com'], subject='traj_match '+dict_name+' 运行完毕', contents=contents)
     # yag=yagmail.SMTP(user='gao101418@163.com', password='XXXXXXXXXXX', host='smtp.163.com')
     # yag.send(to=['1014186239@qq.com'], subject='traj_match 运行完毕', contents=['程序运行完毕'])
     
 # TODO 别名处理
 # TODO 无用代码删除
+# TODO logging
