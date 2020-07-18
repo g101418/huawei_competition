@@ -9,5 +9,7 @@
  'EGPSD': 'EGPSE',
  'PAONX': 'PAMIT',
  'HON': 'CNHKG',
- 'HUNGARY': 'HRRIJ'
+ 'HUNGARY': 'HRRIJ',
+ 'HKHKG': 'CNHKG',
+ 'CNDCB': 'CNSHK'
  }
