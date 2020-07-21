@@ -70,35 +70,6 @@ class TrajectoryMatching(object):
         else:
             self.__vessel_name = ''
 
-    def __get_traj_order_label(self, start_port, end_port):
-        """按照起止港得到相关训练集
-        确保数据集已经排序。如果没有起止港相关数据，则返回 None, None, None
-        Args:
-            start_port (str): 起始港名称
-            end_port (str): 终止港名称
-
-        Returns:
-            order_list, label_list, traj_list (list, list, list(np.array)): 
-                返回与起止港有关的(可能切断)航线的order、label(时间段)、轨迹
-        """
-        # 得到相关训练集
-        match_df = self.__get_match_df(start_port, end_port, reset_index=False)
-        if match_df is None:
-            return None, None, None
-
-        order_list = match_df.loadingOrder.unique().tolist()
-
-        traj_list_label_series = match_df.groupby('loadingOrder')[[
-            'timestamp', 'longitude', 'latitude']].apply(lambda x: self.__get_traj_list_label(x))
-        traj_list_label_series = np.array(traj_list_label_series.tolist())
-
-        label_list = list(traj_list_label_series[:, 1])
-
-        traj_list = list(traj_list_label_series[:, 0])
-        traj_list = list(map(lambda x: np.array(x), traj_list))
-
-        return order_list, label_list, traj_list
-
     def __get_match_df(self, start_port, end_port, reset_index=True):
         """得到与trace相关的训练集，训练集可选是否排序
         如果没有相关df，则返回None
@@ -242,25 +213,6 @@ class TrajectoryMatching(object):
             'TRANSPORT_TRACE'].apply(self.__get_trace).tolist()
 
         return order_list, trace_list, traj_list
-
-    def get_related_traj_len(self, start_port, end_port):
-        """得到trace相关轨迹的数量
-
-        Args:
-            start_port (str): 起始港名称
-            end_port (str): 终止港名称
-
-        Returns:
-            [int]: 相关轨迹的数量
-        """
-        start_port = portsUtils.get_alias_name(start_port)
-        end_port = portsUtils.get_alias_name(end_port)
-        
-        result = self.get_related_traj(start_port, end_port)[0]
-        if result is None:
-            return 0
-        else:
-            return len(result)
         
     def get_related_df_len(self, start_port, end_port):
         """得到trace相关df中订单的数量
@@ -292,17 +244,9 @@ class TrajectoryMatching(object):
             order, label (str, pd.Timedelta) :订单名称、时间差
         """
         try:
-            if self.cut_distance_threshold < 0:
-                # TODO 是否为作废代码
-                train_order_list, train_label_list, train_traj_list = self.get_related_traj(
-                    trace[0], trace[1])
-
-                if train_label_list is None:
-                    return None, None
-            else:
-                train_order_list, train_label_list, train_traj_list = self.modify_traj_label(test_data, for_parallel=for_parallel)
-                if train_label_list is None or len(train_label_list) == 0:
-                    return None, None
+            train_order_list, train_label_list, train_traj_list = self.modify_traj_label(test_data, for_parallel=for_parallel)
+            if train_label_list is None or len(train_label_list) == 0:
+                return None, None
         except:
             traceback.print_exc()
             print('error:', order, 'modify_traj_label')
@@ -352,32 +296,6 @@ class TrajectoryMatching(object):
         
         result_order, result_label = self.get_final_label(order, trace, traj, test_data_, for_parallel=for_parallel)
         return [order, result_order, result_label]
-
-    def get_related_traj(self, start_port, end_port):
-        """引入字典，根据trace得到相关数据
-        输入参数应该已经通过map映射，即使用get_test_trace()函数得到的数据
-        Args:
-            start_port (str): 起始港名称
-            end_port (str): 终止港名称
-
-        Returns:
-            [list]: 1行3列，3列分别是订单列、标签列、轨迹列
-        """
-        # 准备相关航线，写入self的字典
-        trace_str = start_port+'-'+end_port
-
-        if trace_str in self.match_traj_dict:
-            return self.match_traj_dict[trace_str]
-        else:
-            order_list, label_list, traj_list = self.__get_traj_order_label(
-                start_port, end_port)
-
-            if order_list is not None or label_list is not None or traj_list is not None:
-                self.match_traj_dict[trace_str] = [
-                    order_list, label_list, traj_list]
-                return [order_list, label_list, traj_list]
-            else:
-                return [order_list, label_list, traj_list]
 
     def get_related_df(self, start_port, end_port):
         """引入字典，根据trace得到相关DataFrame
