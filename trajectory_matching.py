@@ -379,7 +379,9 @@ class TrajectoryMatching(object):
                 cutted_df = self.__cutTrace.cut_trace_for_test(
                     df, match_df, self.cut_distance_threshold, for_parallel=for_parallel)
         except:
+            traceback.print_exc()
             print('船号匹配处错误，test_order:',order)
+            
         
         if len(cutted_df) == 0:
             return [None, None, None]
@@ -496,13 +498,16 @@ if __name__ == "__main__":
 
     pandarallel.initialize(nb_workers=config.nb_workers)
 
-    dict_name = '0716'
+    dict_name = '0721'
+    password = 'XXXXXXXXX'
     kwargs = {
         'geohash_precision': 5, 
         'cut_distance_threshold': 1.3, 
         'metric': 'sspd', 
         'mean_label_num': 40, 
         'top_N_for_parallel': 20,
+        'cut_level': 2,
+        'cut_num': 400,
         'get_label_way': 'min',
         'vessel_name': '__'
         }
@@ -525,11 +530,11 @@ if __name__ == "__main__":
             f.write(str(final_order_label_dict))
             
     except:
-        yag=yagmail.SMTP(user='gao101418@163.com', password='XXXXX', host='smtp.163.com')
+        yag=yagmail.SMTP(user='gao101418@163.com', password=password, host='smtp.163.com')
         yag.send(to=['1014186239@qq.com'], subject='traj_match '+dict_name+' 出错', contents=contents)
         traceback.print_exc()
     else:
-        yag=yagmail.SMTP(user='gao101418@163.com', password='XXXXX', host='smtp.163.com')
+        yag=yagmail.SMTP(user='gao101418@163.com', password=password, host='smtp.163.com')
         yag.send(to=['1014186239@qq.com'], subject='traj_match '+dict_name+' 运行完毕', contents=contents)
     # yag=yagmail.SMTP(user='gao101418@163.com', password='XXXXXXXXXXX', host='smtp.163.com')
     # yag.send(to=['1014186239@qq.com'], subject='traj_match 运行完毕', contents=['程序运行完毕'])
