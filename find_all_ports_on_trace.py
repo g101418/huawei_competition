@@ -88,9 +88,9 @@ class FindPorts(object):
 
         if len(ports) != 0 and ports[-1][1][1] == -1:
             if cur_in_port_state == True and final_port_end_index < ports[-1][1][0]:
-                ports[-1][1][1] = i
+                ports[-1][1][1] = i + 1
             else:
-                ports[-1][1][1] = final_port_end_index if final_port_end_index != -1 else i
+                ports[-1][1][1] = final_port_end_index if final_port_end_index != -1 else i + 1
 
         # 不考虑最后刚刚到港情况
 
