@@ -1,6 +1,7 @@
-# 计算地图上两点经纬度间的距离
 from math import radians, cos, sin, asin, sqrt
-# Haversine(lon1, lat1, lon2, lat2)的参数代表：经度1，纬度1，经度2，纬度2（十进制度数）
+import itertools
+import heapq
+
 from config import config
 
 def haversine(lon1, lat1, lon2, lat2):
@@ -39,16 +40,19 @@ class PortsUtils(object):
                  all_port_points_filename=config.all_port_points_filename,
                  port_alias_filename=config.port_alias_filename,
                  port_near_filename=config.port_near_filename,
+                 orders_ports_dict_filename=config.orders_ports_dict_filename,
                  port_map_dict=None,
                  all_port_points=None,
                  port_alias=None,
-                 port_naer=None):
+                 port_naer=None,
+                 orders_ports_dict=None):
         super().__init__()
         self.__port_map_dict_filename = port_map_dict_filename
         self.__all_port_points_filename = all_port_points_filename
-        self.__port_alias_filename=config.port_alias_filename
-        self.__port_near_filename=config.port_near_filename
-
+        self.__port_alias_filename = config.port_alias_filename
+        self.__port_near_filename = config.port_near_filename
+        self.__orders_ports_dict_filename = orders_ports_dict_filename
+        
         if port_map_dict is None:
             with open(self.__port_map_dict_filename, 'r') as f:
                 self.port_map_dict = eval(f.read())
@@ -69,6 +73,20 @@ class PortsUtils(object):
                 self.port_naer = eval(f.read())
         else:
             self.port_naer = port_naer
+        if orders_ports_dict is None:
+            with open(self.__orders_ports_dict_filename, 'r') as f:
+                self.orders_ports_dict = eval(f.read())
+        else:
+            self.orders_ports_dict = orders_ports_dict
+            
+            
+        self.__orders_ports_name_dict = {}
+        for key in self.orders_ports_dict.keys():
+            if len(self.orders_ports_dict[key]) == 0:
+                self.__orders_ports_name_dict[key] = []
+            else:
+                self.__orders_ports_name_dict[key] = [
+                    k[0] for k in self.orders_ports_dict[key]]  # 港口名list
 
     def get_port(self, lon, lat, distance_threshold=10.0):
         """根据经纬度得到最匹配的港口名称及坐标、距离。返回值的名称前后无空格
@@ -98,8 +116,7 @@ class PortsUtils(object):
         if min_distance_point == '':
             return None, [0.0, 0.0], -1.0
         else:
-            min_distance_point = self.get_mapped_port_name(min_distance_point)[
-                0]
+            min_distance_point = self.get_mapped_port_name(min_distance_point)[0]
             return min_distance_point, self.all_port_points[min_distance_point], min_distance
 
     def get_mapped_port_name(self, port_name):
@@ -140,6 +157,101 @@ class PortsUtils(object):
                 return [k for k in row]
 
         return [port_name]
+    
+    def match_middle_port(self, trace):
+        trace = trace.split('-')
+        trace = list(map(lambda x: portsUtils.get_alias_name(x), trace))
+        
+        start_port = trace[0]
+        end_port = trace[-1]
+        
+        # 处理起止点的near港问题
+        start_port_near_names = portsUtils.get_near_name(start_port)
+        end_port_near_names = portsUtils.get_near_name(end_port)
+        # 起止港的全部near港集
+        near_name_pairs = [(i,j) for i in start_port_near_names for j in end_port_near_names]
+        
+        # TODO 此处利用set进行比较
+        # 处理中间港的near问题
+        middle_ports = trace[1:-1] if len(trace) > 2 else []
+        if len(middle_ports) != 0:
+            middle_port_set = set(middle_ports)
+            
+            middle_port_near = [portsUtils.get_near_name(port) for port in middle_port_set]
+            
+            middle_port_sets = map(lambda x: frozenset(x), itertools.product(*middle_port_near))
+            middle_port_sets = set(middle_port_sets)
+        else:
+            middle_port_sets = set()
+        
+        result = []
+        
+        # 循环所有train中港口
+        for key, ports in self.__orders_ports_name_dict.items():
+            
+            if len(ports) < 2:
+                continue
+            
+            # 用于找到near的最高匹配值
+            temp_lengths = []
+            for start_port, end_port in near_name_pairs:
+                
+                if start_port not in ports or end_port not in ports:
+                    continue
+                
+                start_index =  [index for index, value in enumerate(ports) if value == start_port][0]
+                end_index = [index for index, value in enumerate(ports) if value == end_port][-1]
+                
+                if start_index >= end_index:
+                    continue
+                
+                ports_set = set(ports[start_index: end_index+1]) - {start_port, end_port}
+                
+                
+                if len(middle_port_sets) != 0:
+                    temp_middle_ports_length = []
+                    for middle_ports in middle_port_sets:
+                        match_middle_port_len = len(middle_ports & ports_set)
+                        temp_middle_ports_length.append(match_middle_port_len / len(ports_set | middle_ports))
+                    
+                    match_middle_port_len = max(temp_middle_ports_length)
+                else:
+                    match_middle_port_len = 0
+                
+                temp_lengths.append(match_middle_port_len)
+            
+            if len(temp_lengths) == 0:
+                pass
+            else:
+                result.append((key, max(temp_lengths)))
+        
+        result.sort(key=lambda x: x[1], reverse=True)
+        
+        return result
+    
+    def get_max_match_ports(self, trace, cut_level=1, cut_num=400):
+        result = self.match_middle_port(trace)
+        
+        if cut_num is not None:
+            if len(result) == 0:
+                return result
+            
+            if cut_level is not None:
+                max_lengths_set = set([item[1] for item in result])
+                max_lengths = heapq.nlargest(min(len(result), cut_level), max_lengths_set)
+                
+                remain_order = []
+                for order, length in result:
+                    if length in max_lengths:
+                        remain_order.append(order)
+                
+                return remain_order[:cut_num]
+            else:
+                result_ = result[:cut_num]
+                result_ = [item[0] for item in result_]
+                return result_
+            
+        return result
 
     def merge_port(self, port_name_1, port_name_2):
         """用来删除/合并两个港口(名称)

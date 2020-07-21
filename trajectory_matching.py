@@ -8,7 +8,6 @@
 from cut_trace import CutTrace
 from utils import portsUtils
 from config import config
-from port_matching import portMatching
 
 import numpy as np
 import pandas as pd
@@ -17,12 +16,13 @@ import geohash
 import itertools
 from datetime import datetime
 import time
+import heapq
 import traceback
 
 from pandarallel import pandarallel
 import yagmail
 
-import heapq
+
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -353,7 +353,7 @@ class TrajectoryMatching(object):
         if len(match_df) == 0:
             return [None, None, None]
         
-        port_match_orders = portMatching.get_max_match_ports(trace_, cut_num=400)
+        port_match_orders = portsUtils.get_max_match_ports(trace_, cut_num=400)
         match_df = match_df[match_df['loadingOrder'].isin(port_match_orders)].reset_index(drop=True)
         
         try:
