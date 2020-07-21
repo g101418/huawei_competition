@@ -294,16 +294,22 @@ class DrawMap(object):
     """
 
     def __init__(self,
-                 tracemap1='./tracemap/tracemap1.txt',
-                 tracemap2='./tracemap/tracemap2.txt',
-                 tracemap_path='./tracemap/'):
-        with open(tracemap1, 'r') as f:
+                 train_data=None,
+                 test_data=None,
+                 tracemap1_filename=config.tracemap1_filename,
+                 tracemap2_filename=config.tracemap2_filename,
+                 tracemap_path=config.tracemap_dir_path):
+        
+        self.__train_data = train_data
+        self.__test_data = test_data
+        
+        with open(tracemap1_filename, 'r') as f:
             self.__tracemap1_txt = str(f.read())
-        with open(tracemap2, 'r') as f:
+        with open(tracemap2_filename, 'r') as f:
             self.__tracemap2_txt = str(f.read())
         self.__tracemap_path = tracemap_path
 
-    def show_one_map(self, df, ordername, tracemap_path=None):
+    def show_one_map(self, ordername, for_train=False, for_test=False, tracemap_path=None):
         """绘制单个航线的轨迹图
 
         Args:
@@ -314,7 +320,15 @@ class DrawMap(object):
         if tracemap_path is None:
             tracemap_path = self.__tracemap_path
 
+        if for_train:
+            df = self.__train_data
+        else:
+            df = self.__test_data
+
         temp = df.loc[df['loadingOrder'] == ordername]
+        if len(temp) == 0:
+            str_ = '训练' if for_train else '测试'
+            raise Exception(str_+'集中无此订单！')
         a = temp.longitude.tolist()
         b = temp.latitude.tolist()
         trace_list = list(map(list, zip(a, b)))
@@ -324,21 +338,96 @@ class DrawMap(object):
                 str(ordername)+'", path:'+str(trace_list)+'},'
             f.write(self.__tracemap1_txt +
                     ''.join(show_list)+self.__tracemap2_txt)
-    # TODO 绘图相关
 
-    # def draw_two_trace_map(self):
-    #     pass
-
-    # def __draw_two_trace_map_coor(self, ordername, coordinates1, coordinates2):
-
-    #     row1 = '{name: "路线'+str(1)+'", path:'+str(coordinates1)+'},'
-    #     row2 = '{name: "路线'+str(1)+'", path:'+str(coordinates2)+'},'
-
-    #     show_list = [row1, row2]
-
-    #     with open(self.__tracemap_path + 'tracemap_two_'+ordername+'.html', 'w') as f:
-    #         f.write(self.__tracemap1_txt +
-    #                 ''.join(show_list) + self.__tracemap2_txt)
+    def show_two_map(self, ordername_test, ordername_train, print_msg=True):
+        temp = self.__test_data.loc[self.__test_data['loadingOrder'] == ordername_test]
+        if len(temp) == 0:
+            raise Exception('测试集中无此订单！')
+        a = temp.longitude.tolist()
+        b = temp.latitude.tolist()
+        trace_list_test = list(map(list, zip(a, b)))
+        
+        temp = self.__train_data.loc[self.__train_data['loadingOrder'] == ordername_train]
+        if len(temp) == 0:
+            raise Exception('训练集中无此订单！')
+        a = temp.longitude.tolist()
+        b = temp.latitude.tolist()
+        trace_list_train = list(map(list, zip(a, b)))
+        
+        trace = self.__test_data[self.__test_data['loadingOrder'] == ordername_test].iloc[0]['TRANSPORT_TRACE']
+        
+        if print_msg:
+            print(trace)
+            
+        row_test = '{name: "路线'+str(ordername_test)+'", path:'+str(trace_list_test)+'},'
+        row_train = '{name: "路线'+str(ordername_train)+'", path:'+str(trace_list_train)+'},'
+        show_list = [row_test, row_train]
+        
+        with open(self.__tracemap_path + 'tracemap_two_'+ordername_test+'-'+ordername_train+'.html', 'w') as f:
+            f.write(self.__tracemap1_txt + ''.join(show_list) + self.__tracemap2_txt)
+            
+    def show_test_train_list_map(self, ordername_test, ordername_train_list, print_msg=True):
+        train_df_ = self.__train_data[self.__train_data['loadingOrder'].isin(ordername_train_list)]
+        
+        temp = self.__test_data.loc[self.__test_data['loadingOrder'] == ordername_test]
+        if len(temp) == 0:
+            raise Exception('测试集中无此订单！')
+        a = temp.longitude.tolist()
+        b = temp.latitude.tolist()
+        trace_list_test = list(map(list, zip(a, b)))
+        
+        trace_list_train_list = []
+        for ordername_train in ordername_train_list:
+            temp = train_df_.loc[train_df_['loadingOrder'] == ordername_train]
+            if len(temp) == 0:
+                raise Exception('训练集中无此订单！')
+            a = temp.longitude.tolist()
+            b = temp.latitude.tolist()
+            trace_list_train = list(map(list, zip(a, b)))
+            trace_list_train_list.append(trace_list_train)
+            
+        trace = self.__test_data[self.__test_data['loadingOrder'] == ordername_test].iloc[0]['TRANSPORT_TRACE']
+        
+        if print_msg:
+            print(trace)
+            
+        row_test = '{name: "路线'+str(ordername_test)+'", path:'+str(trace_list_test)+'},'
+        show_list = [row_test]
+        
+        for ordername_train, trace_list_train in zip(ordername_train_list, trace_list_train_list):
+            row_train = '{name: "路线'+str(ordername_train)+'", path:'+str(trace_list_train)+'},'
+            show_list.append(row_train)
+        
+        
+        with open(config.tracemap_dir_path + '/tracemap_'+ordername_test+'_'+trace+'.html', 'w') as f:
+            f.write(self.__tracemap1_txt + ''.join(show_list) + self.__tracemap2_txt)
+            
+    def show_map_list(self, ordername_list, for_train=False, for_test=False, print_msg=True):
+        if for_train:
+            df = self.__train_data[self.__train_data['loadingOrder'].isin(ordername_list)]
+        else:
+            df = self.__test_data[self.__test_data['loadingOrder'].isin(ordername_list)]
+        
+        trace_list_df_list = []
+        for ordername in ordername_list:
+            temp = df.loc[df['loadingOrder'] == ordername]
+            if len(temp) == 0:
+                str_ = '训练' if for_train else '测试'
+                raise Exception(str_+'集中无此订单！')
+            a = temp.longitude.tolist()
+            b = temp.latitude.tolist()
+            trace_list_df = list(map(list, zip(a, b)))
+            trace_list_df_list.append(trace_list_df)
+            
+        show_list = []
+        
+        for ordername, trace_list in zip(ordername_list, trace_list_df_list):
+            row_b = '{name: "路线'+str(ordername)+'", path:'+str(trace_list)+'},'
+            show_list.append(row_b)
+            
+        with open(config.tracemap_dir_path + '/tracemap_map_list_'+ordername_list[0]+'.html', 'w') as f:
+            f.write(self.__tracemap1_txt + ''.join(show_list) + self.__tracemap2_txt)
+            
 
 
 portsUtils = PortsUtils()

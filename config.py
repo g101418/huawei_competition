@@ -52,5 +52,8 @@ class Config:
         
         self.port_alias_filename = self.tool_file_dir_path + 'port_alias.txt'
         self.port_near_filename = self.tool_file_dir_path + 'port_near.txt'
+        
+        self.tracemap1_filename = self.tool_file_dir_path + 'tracemap1.txt'
+        self.tracemap2_filename = self.tool_file_dir_path + 'tracemap2.txt'
 
 config = Config()
