@@ -39,6 +39,8 @@ class TrajectoryMatching(object):
                  cut_distance_threshold=-1,
                  mean_label_num=1,
                  top_N_for_parallel=10,
+                 cut_level=1,
+                 cut_num=400,
                  get_label_way='mean',
                  vessel_name=''):
         """初始化
@@ -61,6 +63,9 @@ class TrajectoryMatching(object):
         self.cut_distance_threshold = cut_distance_threshold
         self.__mean_label_num = mean_label_num
         self.__top_N_for_parallel = max(0, top_N_for_parallel)
+        self.__cut_level=cut_level
+        self.__cut_num=cut_num
+        
         if get_label_way in ['mean', 'min']:
             self.__get_label_way = get_label_way
         else:
@@ -353,7 +358,7 @@ class TrajectoryMatching(object):
         if len(match_df) == 0:
             return [None, None, None]
         
-        port_match_orders = portsUtils.get_max_match_ports(trace_, cut_num=400)
+        port_match_orders = portsUtils.get_max_match_ports(trace_, cut_level=self.__cut_level, cut_num=self.__cut_num)
         match_df = match_df[match_df['loadingOrder'].isin(port_match_orders)].reset_index(drop=True)
         
         try:
