@@ -1,6 +1,8 @@
 from math import radians, cos, sin, asin, sqrt
 import itertools
 import heapq
+import time
+import functools
 
 from config import config
 
@@ -27,6 +29,22 @@ def haversine(lon1, lat1, lon2, lat2):
     d = c * r
     return d
 
+
+def timethis(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        print('开始运行程序')
+        start_time = time.time()
+        print('当前时间：', time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print('程序结束')
+        print('当前时间：', time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
+        period_time = end_time - start_time
+        print('程序运行时长：', 
+              str(int(period_time//3600))+'小时 '+str(int(period_time%3600)//60)+'分钟 '+str(int(period_time%60))+'秒 ')
+        return result
+    return wrapper
 
 class PortsUtils(object):
     """用于处理港口相关的数据
