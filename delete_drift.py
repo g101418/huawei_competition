@@ -5,10 +5,13 @@
 @Description: 
 @FilePath: /HUAWEI_competition/delete_drift.py
 '''
-from utils import haversine
+from config import config
+from utils import haversine, timethis
+
 import pandas as pd
 from pandarallel import pandarallel
-from config import config
+
+
 
 class DriftPoint(object):
     """删除漂移点
@@ -71,6 +74,7 @@ class DriftPoint(object):
 
         return delete_indexs
     
+    @timethis
     def delete_drift_point(self, df, speed_threshold=50):
         """删除漂移点
 
