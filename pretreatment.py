@@ -48,6 +48,8 @@ class Pretreatment(object):
         if 2 in stage:
             train_data = dataAnalyseUtil.get_drop_duplicated_data(train_data)
         
+        # 2.2 删除方向为-1/小于0 或 大于36000的数据
+        
         # 3. 删除漂移点
         if 3 in stage:
             train_data = driftPoint.delete_drift_point(train_data, 50)
