@@ -92,14 +92,20 @@ class CutTrace(object):
                         break
                     if end_first > 0 and start_first >= end_first:
                         break
+                    if start_second > 0 and start_second >= end_second:
+                        break
+                    if end_first > 0 and start_second > 0 and start_second >= end_first:
+                        break
                     
-                    if end_first > 0 and end_second > 0:
-                        # start_index, end_index = start_first, (end_first+end_second)//2
+                    if start_second > 0 and end_first > 0:
+                        start_index, end_index = start_second, end_first
+                    elif start_second > 0 and end_second > 0:
+                        start_index, end_index = start_second, end_second
+                    elif start_first > 0 and end_first > 0:
                         start_index, end_index = start_first, end_first
-                    elif end_first > 0:
-                        start_index, end_index = start_first, end_first
-                    else:
+                    elif start_first > 0 and end_second > 0:
                         start_index, end_index = start_first, end_second
+                        
 
                     # start_index, end_index = start_first, end_second
                     break
