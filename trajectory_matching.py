@@ -512,7 +512,9 @@ if __name__ == "__main__":
         'vessel_name': '__'
         }
     contents = [key+'='+str(value) for key,value in kwargs.items()]
-    contents += ['train_data_path'+'='+train_data_path, 'test_data_path'+'='+test_data_path]
+    contents += ['train_data_path'+'='+train_data_path,
+                  'test_data_path'+'='+test_data_path,
+                  'order_ports_dict'+'='+config.orders_ports_dict_filename]
     
     try:
         trajectoryMatching = TrajectoryMatching(train_data, **kwargs)

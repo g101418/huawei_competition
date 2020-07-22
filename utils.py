@@ -247,7 +247,7 @@ class PortsUtils(object):
         
         return result
     
-    def get_max_match_ports(self, trace, cut_level=1, cut_num=400):
+    def get_max_match_ports(self, trace, cut_level=1, cut_num=400, matching_down=True):
         result = self.match_middle_port(trace)
         
         if cut_num is not None:
@@ -257,6 +257,9 @@ class PortsUtils(object):
             if cut_level is not None:
                 max_lengths_set = set([item[1] for item in result])
                 max_lengths = heapq.nlargest(min(len(result), cut_level), max_lengths_set)
+                
+                if matching_down != True:
+                    max_lengths = [max_lengths[min(len(max_lengths)-1, cut_level-1)]]
                 
                 remain_order = []
                 for order, length in result:
