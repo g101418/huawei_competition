@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 
 from config import config
-from utils import haversine, portsUtils
+from utils import haversine, portsUtils, timethis
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -163,7 +163,10 @@ class FindPorts(object):
                     self.orders_ports_dict[key].append(
                         self.start_end_ports_dict[key][0])
     
-    def delete_not_0_speed(self):
+    def delete_not_0_speed(self, train_data=None):
+        
+        if train_data is None:
+            train_data = self.train_data
         
         orders_ports_dict_ = dict()
         
@@ -196,6 +199,7 @@ class FindPorts(object):
               
         self.orders_ports_dict = orders_ports_dict_
 
+    @timethis
     def find_ports(self, train_data=None, ordername=None):
         if train_data is None:
             train_data = self.train_data
@@ -214,7 +218,7 @@ class FindPorts(object):
 
         self.integration_port()
         
-        self.delete_not_0_speed()
+        self.delete_not_0_speed(train_data)
 
         return self.orders_ports_dict
     
