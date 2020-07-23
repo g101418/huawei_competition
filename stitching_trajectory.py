@@ -54,10 +54,16 @@ class StitchTrajectory(object):
                         if start_port_index >= end_port_index:
                             continue
                         
+                        if start_port_index + 1 == end_port_index:
+                            continuous = True
+                        else:
+                            continuous = False
+                            
                         start_index = get_index(ports_value[start_port_index], start=True)
                         end_index = get_index(ports_value[end_port_index], end=True)
                         
-                        result[start_port+'-'+end_port].append([order, [start_index, end_index]])
+                        
+                        result[start_port+'-'+end_port].append([order, [start_index, end_index], continuous])
         
         return result
     
