@@ -1,4 +1,4 @@
-[{'HKHKG', 'CNHKG', 'CNYTN', 'CNSHK', 'CNDCB', 'CNNSA'},
+[{'CNHKG', 'CNYTN', 'CNSHK', 'CNNSA'},
 {'SGSIN', 'MYTPP'},
 {'CNYGS', 'CNSHA'}
 ]

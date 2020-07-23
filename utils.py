@@ -1,6 +1,9 @@
-# 计算地图上两点经纬度间的距离
 from math import radians, cos, sin, asin, sqrt
-# Haversine(lon1, lat1, lon2, lat2)的参数代表：经度1，纬度1，经度2，纬度2（十进制度数）
+import itertools
+import heapq
+import time
+import functools
+
 from config import config
 
 def haversine(lon1, lat1, lon2, lat2):
@@ -27,6 +30,22 @@ def haversine(lon1, lat1, lon2, lat2):
     return d
 
 
+def timethis(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        print('开始运行程序')
+        start_time = time.time()
+        print('当前时间：', time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print('程序结束')
+        print('当前时间：', time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
+        period_time = end_time - start_time
+        print('程序运行时长：', 
+              str(int(period_time//3600))+'小时 '+str(int(period_time%3600)//60)+'分钟 '+str(int(period_time%60))+'秒 ')
+        return result
+    return wrapper
+
 class PortsUtils(object):
     """用于处理港口相关的数据
     包括根据经纬度获取港口，港口名字转换
@@ -39,16 +58,19 @@ class PortsUtils(object):
                  all_port_points_filename=config.all_port_points_filename,
                  port_alias_filename=config.port_alias_filename,
                  port_near_filename=config.port_near_filename,
+                 orders_ports_dict_filename=config.orders_ports_dict_filename,
                  port_map_dict=None,
                  all_port_points=None,
                  port_alias=None,
-                 port_naer=None):
+                 port_naer=None,
+                 orders_ports_dict=None):
         super().__init__()
         self.__port_map_dict_filename = port_map_dict_filename
         self.__all_port_points_filename = all_port_points_filename
-        self.__port_alias_filename=config.port_alias_filename
-        self.__port_near_filename=config.port_near_filename
-
+        self.__port_alias_filename = config.port_alias_filename
+        self.__port_near_filename = config.port_near_filename
+        self.__orders_ports_dict_filename = orders_ports_dict_filename
+        
         if port_map_dict is None:
             with open(self.__port_map_dict_filename, 'r') as f:
                 self.port_map_dict = eval(f.read())
@@ -69,6 +91,20 @@ class PortsUtils(object):
                 self.port_naer = eval(f.read())
         else:
             self.port_naer = port_naer
+        if orders_ports_dict is None:
+            with open(self.__orders_ports_dict_filename, 'r') as f:
+                self.orders_ports_dict = eval(f.read())
+        else:
+            self.orders_ports_dict = orders_ports_dict
+            
+            
+        self.__orders_ports_name_dict = {}
+        for key in self.orders_ports_dict.keys():
+            if len(self.orders_ports_dict[key]) == 0:
+                self.__orders_ports_name_dict[key] = []
+            else:
+                self.__orders_ports_name_dict[key] = [
+                    k[0] for k in self.orders_ports_dict[key]]  # 港口名list
 
     def get_port(self, lon, lat, distance_threshold=10.0):
         """根据经纬度得到最匹配的港口名称及坐标、距离。返回值的名称前后无空格
@@ -98,8 +134,7 @@ class PortsUtils(object):
         if min_distance_point == '':
             return None, [0.0, 0.0], -1.0
         else:
-            min_distance_point = self.get_mapped_port_name(min_distance_point)[
-                0]
+            min_distance_point = self.get_mapped_port_name(min_distance_point)[0]
             return min_distance_point, self.all_port_points[min_distance_point], min_distance
 
     def get_mapped_port_name(self, port_name):
@@ -140,6 +175,104 @@ class PortsUtils(object):
                 return [k for k in row]
 
         return [port_name]
+    
+    def match_middle_port(self, trace):
+        trace = trace.split('-')
+        trace = list(map(lambda x: portsUtils.get_alias_name(x), trace))
+        
+        start_port = trace[0]
+        end_port = trace[-1]
+        
+        # 处理起止点的near港问题
+        start_port_near_names = portsUtils.get_near_name(start_port)
+        end_port_near_names = portsUtils.get_near_name(end_port)
+        # 起止港的全部near港集
+        near_name_pairs = [(i,j) for i in start_port_near_names for j in end_port_near_names]
+        
+        # TODO 此处利用set进行比较
+        # 处理中间港的near问题
+        middle_ports = trace[1:-1] if len(trace) > 2 else []
+        if len(middle_ports) != 0:
+            middle_port_set = set(middle_ports)
+            
+            middle_port_near = [portsUtils.get_near_name(port) for port in middle_port_set]
+            
+            middle_port_sets = map(lambda x: frozenset(x), itertools.product(*middle_port_near))
+            middle_port_sets = set(middle_port_sets)
+        else:
+            middle_port_sets = set()
+        
+        result = []
+        
+        # 循环所有train中港口
+        for key, ports in self.__orders_ports_name_dict.items():
+            
+            if len(ports) < 2:
+                continue
+            
+            # 用于找到near的最高匹配值
+            temp_lengths = []
+            for start_port, end_port in near_name_pairs:
+                
+                if start_port not in ports or end_port not in ports:
+                    continue
+                
+                start_index =  [index for index, value in enumerate(ports) if value == start_port][0]
+                end_index = [index for index, value in enumerate(ports) if value == end_port][-1]
+                
+                if start_index >= end_index:
+                    continue
+                
+                ports_set = set(ports[start_index: end_index+1]) - {start_port, end_port}
+                
+                
+                if len(middle_port_sets) != 0:
+                    temp_middle_ports_length = []
+                    for middle_ports in middle_port_sets:
+                        match_middle_port_len = len(middle_ports & ports_set)
+                        temp_middle_ports_length.append(match_middle_port_len / len(ports_set | middle_ports))
+                    
+                    match_middle_port_len = max(temp_middle_ports_length)
+                else:
+                    match_middle_port_len = 0
+                
+                temp_lengths.append(match_middle_port_len)
+            
+            if len(temp_lengths) == 0:
+                pass
+            else:
+                result.append((key, max(temp_lengths)))
+        
+        result.sort(key=lambda x: x[1], reverse=True)
+        
+        return result
+    
+    def get_max_match_ports(self, trace, cut_level=1, cut_num=400, matching_down=True):
+        result = self.match_middle_port(trace)
+        
+        if cut_num is not None:
+            if len(result) == 0:
+                return result
+            
+            if cut_level is not None:
+                max_lengths_set = set([item[1] for item in result])
+                max_lengths = heapq.nlargest(min(len(result), cut_level), max_lengths_set)
+                
+                if matching_down != True:
+                    max_lengths = [max_lengths[min(len(max_lengths)-1, cut_level-1)]]
+                
+                remain_order = []
+                for order, length in result:
+                    if length in max_lengths:
+                        remain_order.append(order)
+                
+                return remain_order[:cut_num]
+            else:
+                result_ = result[:cut_num]
+                result_ = [item[0] for item in result_]
+                return result_
+            
+        return result
 
     def merge_port(self, port_name_1, port_name_2):
         """用来删除/合并两个港口(名称)
@@ -182,16 +315,22 @@ class DrawMap(object):
     """
 
     def __init__(self,
-                 tracemap1='./tracemap/tracemap1.txt',
-                 tracemap2='./tracemap/tracemap2.txt',
-                 tracemap_path='./tracemap/'):
-        with open(tracemap1, 'r') as f:
+                 train_data=None,
+                 test_data=None,
+                 tracemap1_filename=config.tracemap1_filename,
+                 tracemap2_filename=config.tracemap2_filename,
+                 tracemap_path=config.tracemap_dir_path):
+        
+        self.__train_data = train_data
+        self.__test_data = test_data
+        
+        with open(tracemap1_filename, 'r') as f:
             self.__tracemap1_txt = str(f.read())
-        with open(tracemap2, 'r') as f:
+        with open(tracemap2_filename, 'r') as f:
             self.__tracemap2_txt = str(f.read())
         self.__tracemap_path = tracemap_path
 
-    def show_one_map(self, df, ordername, tracemap_path=None):
+    def show_one_map(self, ordername, for_train=False, for_test=False, tracemap_path=None):
         """绘制单个航线的轨迹图
 
         Args:
@@ -202,7 +341,15 @@ class DrawMap(object):
         if tracemap_path is None:
             tracemap_path = self.__tracemap_path
 
+        if for_train:
+            df = self.__train_data
+        else:
+            df = self.__test_data
+
         temp = df.loc[df['loadingOrder'] == ordername]
+        if len(temp) == 0:
+            str_ = '训练' if for_train else '测试'
+            raise Exception(str_+'集中无此订单！')
         a = temp.longitude.tolist()
         b = temp.latitude.tolist()
         trace_list = list(map(list, zip(a, b)))
@@ -212,21 +359,96 @@ class DrawMap(object):
                 str(ordername)+'", path:'+str(trace_list)+'},'
             f.write(self.__tracemap1_txt +
                     ''.join(show_list)+self.__tracemap2_txt)
-    # TODO 绘图相关
 
-    # def draw_two_trace_map(self):
-    #     pass
-
-    # def __draw_two_trace_map_coor(self, ordername, coordinates1, coordinates2):
-
-    #     row1 = '{name: "路线'+str(1)+'", path:'+str(coordinates1)+'},'
-    #     row2 = '{name: "路线'+str(1)+'", path:'+str(coordinates2)+'},'
-
-    #     show_list = [row1, row2]
-
-    #     with open(self.__tracemap_path + 'tracemap_two_'+ordername+'.html', 'w') as f:
-    #         f.write(self.__tracemap1_txt +
-    #                 ''.join(show_list) + self.__tracemap2_txt)
+    def show_two_map(self, ordername_test, ordername_train, print_msg=True):
+        temp = self.__test_data.loc[self.__test_data['loadingOrder'] == ordername_test]
+        if len(temp) == 0:
+            raise Exception('测试集中无此订单！')
+        a = temp.longitude.tolist()
+        b = temp.latitude.tolist()
+        trace_list_test = list(map(list, zip(a, b)))
+        
+        temp = self.__train_data.loc[self.__train_data['loadingOrder'] == ordername_train]
+        if len(temp) == 0:
+            raise Exception('训练集中无此订单！')
+        a = temp.longitude.tolist()
+        b = temp.latitude.tolist()
+        trace_list_train = list(map(list, zip(a, b)))
+        
+        trace = self.__test_data[self.__test_data['loadingOrder'] == ordername_test].iloc[0]['TRANSPORT_TRACE']
+        
+        if print_msg:
+            print(trace)
+            
+        row_test = '{name: "路线'+str(ordername_test)+'", path:'+str(trace_list_test)+'},'
+        row_train = '{name: "路线'+str(ordername_train)+'", path:'+str(trace_list_train)+'},'
+        show_list = [row_test, row_train]
+        
+        with open(self.__tracemap_path + 'tracemap_two_'+ordername_test+'-'+ordername_train+'.html', 'w') as f:
+            f.write(self.__tracemap1_txt + ''.join(show_list) + self.__tracemap2_txt)
+            
+    def show_test_train_list_map(self, ordername_test, ordername_train_list, print_msg=True):
+        train_df_ = self.__train_data[self.__train_data['loadingOrder'].isin(ordername_train_list)]
+        
+        temp = self.__test_data.loc[self.__test_data['loadingOrder'] == ordername_test]
+        if len(temp) == 0:
+            raise Exception('测试集中无此订单！')
+        a = temp.longitude.tolist()
+        b = temp.latitude.tolist()
+        trace_list_test = list(map(list, zip(a, b)))
+        
+        trace_list_train_list = []
+        for ordername_train in ordername_train_list:
+            temp = train_df_.loc[train_df_['loadingOrder'] == ordername_train]
+            if len(temp) == 0:
+                raise Exception('训练集中无此订单！')
+            a = temp.longitude.tolist()
+            b = temp.latitude.tolist()
+            trace_list_train = list(map(list, zip(a, b)))
+            trace_list_train_list.append(trace_list_train)
+            
+        trace = self.__test_data[self.__test_data['loadingOrder'] == ordername_test].iloc[0]['TRANSPORT_TRACE']
+        
+        if print_msg:
+            print(trace)
+            
+        row_test = '{name: "路线'+str(ordername_test)+'", path:'+str(trace_list_test)+'},'
+        show_list = [row_test]
+        
+        for ordername_train, trace_list_train in zip(ordername_train_list, trace_list_train_list):
+            row_train = '{name: "路线'+str(ordername_train)+'", path:'+str(trace_list_train)+'},'
+            show_list.append(row_train)
+        
+        
+        with open(config.tracemap_dir_path + '/tracemap_'+ordername_test+'_'+trace+'.html', 'w') as f:
+            f.write(self.__tracemap1_txt + ''.join(show_list) + self.__tracemap2_txt)
+            
+    def show_map_list(self, ordername_list, for_train=False, for_test=False, print_msg=True):
+        if for_train:
+            df = self.__train_data[self.__train_data['loadingOrder'].isin(ordername_list)]
+        else:
+            df = self.__test_data[self.__test_data['loadingOrder'].isin(ordername_list)]
+        
+        trace_list_df_list = []
+        for ordername in ordername_list:
+            temp = df.loc[df['loadingOrder'] == ordername]
+            if len(temp) == 0:
+                str_ = '训练' if for_train else '测试'
+                raise Exception(str_+'集中无此订单！')
+            a = temp.longitude.tolist()
+            b = temp.latitude.tolist()
+            trace_list_df = list(map(list, zip(a, b)))
+            trace_list_df_list.append(trace_list_df)
+            
+        show_list = []
+        
+        for ordername, trace_list in zip(ordername_list, trace_list_df_list):
+            row_b = '{name: "路线'+str(ordername)+'", path:'+str(trace_list)+'},'
+            show_list.append(row_b)
+            
+        with open(config.tracemap_dir_path + '/tracemap_map_list_'+ordername_list[0]+'.html', 'w') as f:
+            f.write(self.__tracemap1_txt + ''.join(show_list) + self.__tracemap2_txt)
+            
 
 
 portsUtils = PortsUtils()

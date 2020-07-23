@@ -27,6 +27,8 @@ class Config:
         self.train_gps_path = self.data_dir_path + 'train0711.csv'
         self.train_data_dup = self.data_dir_path + 'train_dup.csv'
         self.train_data_drift_dup = self.data_dir_path + 'train_drift_dup.csv'
+        self.train_data_drift_dup_direc = self.data_dir_path + 'train_drift_dup_direc.csv'
+        self.train_data_drift_dup_direc_MMSI = self.data_dir_path + 'train_drift_dup_direc_MMSI.csv'
         
         
         self.train_data_drift_dup_drop = self.data_dir_path + '_train_drift.csv'
@@ -40,7 +42,7 @@ class Config:
             'vesselStatus', 'vesselDatasource', 'TRANSPORT_TRACE'
         ]
 
-        self.orders_ports_dict_filename= self.tool_file_dir_path + 'orders_ports_dict_0714.txt'
+        self.orders_ports_dict_filename= self.tool_file_dir_path + 'orders_ports_dict_0719.txt'
         self.port_map_dict_filename = self.tool_file_dir_path + 'port_map_dict.txt'
         # self.all_port_points_filename='./tool_file/all_port_points.txt'
         self.all_port_points_filename = self.tool_file_dir_path + 'new_port_points.txt'
@@ -52,5 +54,8 @@ class Config:
         
         self.port_alias_filename = self.tool_file_dir_path + 'port_alias.txt'
         self.port_near_filename = self.tool_file_dir_path + 'port_near.txt'
+        
+        self.tracemap1_filename = self.tool_file_dir_path + 'tracemap1.txt'
+        self.tracemap2_filename = self.tool_file_dir_path + 'tracemap2.txt'
 
 config = Config()
