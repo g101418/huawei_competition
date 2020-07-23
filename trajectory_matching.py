@@ -36,7 +36,7 @@ class TrajectoryMatching(object):
                  train_data, 
                  geohash_precision=4, 
                  metric="sspd",
-                 cut_distance_threshold=-1,
+                 cut_distance_threshold=1.3,
                  mean_label_num=1,
                  top_N_for_parallel=10,
                  cut_level=1,
