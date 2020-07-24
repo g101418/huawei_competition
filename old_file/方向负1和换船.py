@@ -18,7 +18,7 @@ def ff(x):
         
         max_mssi = mssi_lengths[0][0]
         
-        ms_df_not_index_list = x[x['vesselMMSI']!=ms].index.tolist()
+        ms_df_not_index_list = x[x['vesselMMSI']!=max_mssi].index.tolist()
         
         return ms_df_not_index_list
     
