@@ -358,12 +358,12 @@ class TrajectoryMatching(object):
         trace_str = strat_port+'-'+end_port
         
         if trace_str not in self.match_df_dict:
-            return [None, None, None]
+            return [None, None, None], None
         
         match_df = self.match_df_dict[trace_str]
         
         if len(match_df) == 0:
-            return [None, None, None]
+            return [None, None, None], None
         
         port_match_orders = portsUtils.get_max_match_ports(trace_, cut_level=self.__cut_level, cut_num=self.__cut_num)
         match_df = match_df[match_df['loadingOrder'].isin(port_match_orders)].reset_index(drop=True)
@@ -395,7 +395,7 @@ class TrajectoryMatching(object):
             
         
         if len(cutted_df) == 0:
-            return [None, None, None]
+            return [None, None, None], None
         
         traj_list_label_series = cutted_df.groupby('loadingOrder')[[
             'timestamp', 'longitude', 'latitude']].apply(lambda x: self.__get_traj_list_label(x, for_traj=False))
