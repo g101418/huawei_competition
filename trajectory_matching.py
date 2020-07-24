@@ -41,6 +41,7 @@ class TrajectoryMatching(object):
                  top_N_for_parallel=10,
                  cut_level=1,
                  cut_num=400,
+                 after_cut_mean_num=-1,
                  get_label_way='mean',
                  vessel_name=''):
         """初始化
@@ -65,6 +66,7 @@ class TrajectoryMatching(object):
         self.__top_N_for_parallel = max(0, top_N_for_parallel)
         self.__cut_level=cut_level
         self.__cut_num=cut_num
+        self.__after_cut_mean_num=after_cut_mean_num
         
         if get_label_way in ['mean', 'min']:
             self.__get_label_way = get_label_way
@@ -249,7 +251,7 @@ class TrajectoryMatching(object):
             order, label (str, pd.Timedelta) :订单名称、时间差
         """
         try:
-            train_order_list, train_label_list, train_traj_list = self.modify_traj_label(test_data, for_parallel=for_parallel)
+            (train_order_list, train_label_list, train_traj_list), is_after_cut = self.modify_traj_label(test_data, for_parallel=for_parallel)
             if train_label_list is None or len(train_label_list) == 0:
                 return None, None
         except:
@@ -266,8 +268,13 @@ class TrajectoryMatching(object):
             return None,None
         
         try:
+            mean_label_num = self.__mean_label_num
+            
+            if self.__after_cut_mean_num > 0 and is_after_cut:
+                mean_label_num = self.__after_cut_mean_num
+            
             min_traj_index_3 = list(map(lambda x:cdist.index(x), 
-                heapq.nsmallest(min(len(train_label_list), self.__mean_label_num), cdist)))
+                heapq.nsmallest(min(len(train_label_list), mean_label_num), cdist)))
             
             temp_list = list(map(lambda x: x.total_seconds(), 
                           list(np.array(train_label_list)[min_traj_index_3])))
@@ -361,6 +368,10 @@ class TrajectoryMatching(object):
         port_match_orders = portsUtils.get_max_match_ports(trace_, cut_level=self.__cut_level, cut_num=self.__cut_num)
         match_df = match_df[match_df['loadingOrder'].isin(port_match_orders)].reset_index(drop=True)
         
+        is_after_cut = False
+        if len(port_match_orders) < self.__cut_num:
+            is_after_cut = True
+        
         try:
             if len(self.__vessel_name) > 0:
                 match_df_ = match_df[match_df[self.__vessel_name]==test_data[self.__vessel_name].unique().tolist()[0]]
@@ -397,7 +408,7 @@ class TrajectoryMatching(object):
         traj_list = list(traj_list_label_series[:, 0])
         traj_list = list(map(lambda x: np.array(x), traj_list))
         
-        return [order_list, label_list, traj_list]
+        return [order_list, label_list, traj_list], is_after_cut
 
     def process(self, test_data, order=None):
         print('开始运行process函数')
@@ -508,6 +519,7 @@ if __name__ == "__main__":
         'top_N_for_parallel': 20,
         'cut_level': 2,
         'cut_num': 400,
+        'after_cut_mean_num': 2,
         'get_label_way': 'min',
         'vessel_name': '__'
         }
