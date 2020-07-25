@@ -367,13 +367,9 @@ class TrajectoryMatching(object):
         if len(match_df) == 0:
             return [None, None, None], None
         
-        port_match_orders = portsUtils.get_max_match_ports(trace_, cut_level=self.__cut_level, cut_num=self.__cut_num, matching_down=self.__matching_down)
+        port_match_orders, is_single_level = portsUtils.get_max_match_ports(trace_, cut_level=self.__cut_level, cut_num=self.__cut_num, matching_down=self.__matching_down)
         match_df = match_df[match_df['loadingOrder'].isin(port_match_orders)].reset_index(drop=True)
-        
-        is_after_cut = False
-        if len(port_match_orders) < self.__cut_num:
-            is_after_cut = True
-        
+
         try:
             if len(self.__vessel_name) > 0:
                 match_df_ = match_df[match_df[self.__vessel_name]==test_data[self.__vessel_name].unique().tolist()[0]]
@@ -410,7 +406,7 @@ class TrajectoryMatching(object):
         traj_list = list(traj_list_label_series[:, 0])
         traj_list = list(map(lambda x: np.array(x), traj_list))
         
-        return [order_list, label_list, traj_list], is_after_cut
+        return [order_list, label_list, traj_list], not is_single_level
 
     def process(self, test_data, order=None):
         print('开始运行process函数')
