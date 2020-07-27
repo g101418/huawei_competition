@@ -280,7 +280,7 @@ class TrajectoryMatching(object):
             elif self.__get_label_way == 'min':
                 mean_label_seconds = np.min(temp_list)
             elif self.__get_label_way == 'median':
-                mean_label_seconds = np.median(np.array(temp_list))
+                mean_label_seconds = np.median(temp_list)
 
             mean_label = pd.Timedelta(seconds=mean_label_seconds)
         except:
