@@ -74,6 +74,10 @@ class DriftPoint(object):
 
         return delete_indexs
     
+    def delete_direction_error_row(self, train_data):
+        train_data_ = train_data[(train_data['direction']>=0)&(train_data['direction']<=36000)].reset_index(drop=True)
+        return train_data_
+    
     @timethis
     def delete_drift_point(self, df, speed_threshold=50):
         """删除漂移点
@@ -85,6 +89,8 @@ class DriftPoint(object):
             (pd.DataFrame): 删除漂移点后数据集
         """
         self.speed_threshold=speed_threshold
+        
+        df = self.delete_direction_error_row(df)
         
         pandarallel.initialize(nb_workers=config.nb_workers)
         
