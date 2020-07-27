@@ -70,14 +70,9 @@ class TrajectoryMatching(object):
         self.__after_cut_mean_num = after_cut_mean_num
         self.__matching_down = matching_down
         
-        if get_label_way in ['mean', 'min']:
-            self.__get_label_way = get_label_way
-        else:
-            self.__vessel_name = 'mean'
-        if vessel_name in ['carrierName', 'vesselMMSI']:
-            self.__vessel_name = vessel_name
-        else:
-            self.__vessel_name = ''
+        self.__get_label_way = get_label_way if get_label_way in ['mean', 'min', 'median'] else 'mean'
+        self.__vessel_name = vessel_name if vessel_name in ['carrierName', 'vesselMMSI'] else ''
+        
 
     def __get_match_df(self, start_port, end_port, reset_index=True):
         """得到与trace相关的训练集，训练集可选是否排序
@@ -282,8 +277,10 @@ class TrajectoryMatching(object):
                           list(np.array(train_label_list)[min_traj_index_3])))
             if self.__get_label_way == 'mean':
                 mean_label_seconds = np.mean(temp_list)
-            else:
+            elif self.__get_label_way == 'min':
                 mean_label_seconds = np.min(temp_list)
+            elif self.__get_label_way == 'median':
+                mean_label_seconds = np.median(np.array(temp_list))
 
             mean_label = pd.Timedelta(seconds=mean_label_seconds)
         except:
