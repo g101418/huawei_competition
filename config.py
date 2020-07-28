@@ -49,8 +49,9 @@ class Config:
         
         # 包含匹配到轨迹相关港口比例的全部数据，字典
         self.matched_port_dict_filename = self.tool_file_dir_path + 'matched_port_dict.txt'
-        # 截留最大比例后，残余400项，字典，只有order名
-        self.max_length_matched_port_filename = self.tool_file_dir_path + 'max_length_matched_port.txt'
+        
+        # 港口到港口分割数据后的各下标组合，字典
+        self.split_port_dict_filename = self.tool_file_dir_path + 'split_port_dict.txt'
         
         self.port_alias_filename = self.tool_file_dir_path + 'port_alias.txt'
         self.port_near_filename = self.tool_file_dir_path + 'port_near.txt'

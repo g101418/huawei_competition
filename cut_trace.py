@@ -1,11 +1,6 @@
 '''
 @Author: Gao S
 @Date: 2020-06-20 13:35:36
-<<<<<<< HEAD
-@LastEditTime: 2020-07-16 15:50:25
-=======
-@LastEditTime: 2020-07-16 15:47:48
->>>>>>> err
 @Description: 切割轨迹
 @FilePath: /HUAWEI_competition/cut_trace.py
 '''
@@ -143,7 +138,7 @@ class CutTrace(object):
         return len(result)
     
     # ! 添加处理轨迹和test之trace数据
-    def cut_trace_for_test(self, test_df, match_df, distance_threshold=80, for_parallel=True):
+    def cut_trace_for_test(self, test_df, match_df, distance_threshold=80, for_start=False, for_parallel=True):
         """根据test的df(包含lon、lat数据，即轨迹)，对match_df进行切割
         该函数针对的是df数据，而不是轨迹数据(np.array)
         思路是将train中轨迹，从头从尾分别开始，计算每个点到test头尾点的距离，符合某个阈值时停止
@@ -151,6 +146,7 @@ class CutTrace(object):
             test_df (pd.DataFrame): test的df，该df应该只包含一个订单，且已经排序，和match_df
             match_df (pd.DataFrame): 针对test匹配到的train的df数据
             distance_threshold (int, optional): 到首尾节点的距离阈值. Defaults to 80.
+            for_start (Bool, optional): 切割起点港到轨迹头的路线. Defaults to False.
             for_parallel (Bool): 为True时使用多线程，为False时不使用多线程
         Returns:
             (pd.DataFrame): 切割后的df数据，index已经重设，可能为空，最后一条用切割前最后一条代替以求
@@ -248,7 +244,7 @@ class CutTrace(object):
                 start_index = -1
                 # ! 结束
             end_index = -1
-            if start_index != -1:
+            if start_index != -1 and for_start == False:
                 i = df.index[-1]
                 while i > start_index:
                 # for i in range(df.index[-1], start_index, -1):
@@ -284,13 +280,22 @@ class CutTrace(object):
                 # ! 结束
             
             # ! 打标问题
-            if start_index != -1 and end_index != -1:
-                use_df_label = df.loc[start_index:end_index]
-                # 最后一行数据的时间戳为对应train轨迹的到港时间戳
-                use_df_label.loc[end_index, 'timestamp'] = df.loc[df.index[-1], 'timestamp']
-                return [use_df_label]
+            if for_start == False:
+                if start_index != -1 and end_index != -1:
+                    use_df_label = df.loc[start_index:end_index]
+                    # 最后一行数据的时间戳为对应train轨迹的到港时间戳
+                    use_df_label.loc[end_index, 'timestamp'] = df.loc[df.index[-1], 'timestamp']
+                    return [use_df_label]
+                else:
+                    return [pd.DataFrame(columns=df.columns)]
             else:
-                return [pd.DataFrame(columns=df.columns)]
+                if start_index != -1:
+                    use_df_label = df.loc[df.index[0]: start_index]
+                    # 最后一行数据的时间戳为对应train轨迹的到港时间戳
+                    return [use_df_label]
+                else:
+                    return [pd.DataFrame(columns=df.columns)]
+            
         if for_parallel == False:
             use_df = match_df.groupby('loadingOrder').apply(
                 lambda x:while_for_cut_multi(x)).tolist()

@@ -252,11 +252,13 @@ class PortsUtils(object):
         
         if cut_num is not None:
             if len(result) == 0:
-                return result
+                return result, None
             
             if cut_level is not None:
                 max_lengths_set = set([item[1] for item in result])
                 max_lengths = heapq.nlargest(min(len(result), cut_level), max_lengths_set)
+                
+                is_single_level = True if len(max_lengths) == 1 else False
                 
                 if matching_down != True:
                     max_lengths = [max_lengths[min(len(max_lengths)-1, cut_level-1)]]
@@ -266,13 +268,13 @@ class PortsUtils(object):
                     if length in max_lengths:
                         remain_order.append(order)
                 
-                return remain_order[:cut_num]
+                return remain_order[:cut_num], is_single_level
             else:
                 result_ = result[:cut_num]
                 result_ = [item[0] for item in result_]
-                return result_
+                return result_, None
             
-        return result
+        return result, None
 
     def merge_port(self, port_name_1, port_name_2):
         """用来删除/合并两个港口(名称)
