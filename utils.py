@@ -29,6 +29,30 @@ def haversine(lon1, lat1, lon2, lat2):
     d = c * r
     return d
 
+def get_port_start_end_index(start_indexs, end_indexs):
+    start_index, end_index = -1, -1
+    i, j = len(start_indexs) - 1, 0
+    change = True
+    while i >= 0 and j < len(end_indexs):
+        if not start_indexs[i] < end_indexs[j]:
+            if i - 1 >= 0 and j + 1 < len(end_indexs):
+                if change:
+                    i -= 1
+                else:
+                    j += 1
+                change = not change
+            elif i - 1 >= 0:
+                i -= 1
+            elif j + 1 < len(end_indexs):
+                j += 1
+            else:
+                break
+            continue
+        start_index, end_index = start_indexs[i], end_indexs[j]
+        break
+    
+    return start_index, end_index
+
 
 def timethis(func):
     @functools.wraps(func)
@@ -175,7 +199,7 @@ class PortsUtils(object):
                 return [k for k in row]
 
         return [port_name]
-    
+        
     def match_middle_port(self, trace):
         trace = trace.split('-')
         trace = list(map(lambda x: portsUtils.get_alias_name(x), trace))
@@ -218,8 +242,10 @@ class PortsUtils(object):
                     continue
                 
                 # TODO 第一个出现港/最后一个
-                start_index =  [index for index, value in enumerate(ports) if value == start_port][0]
-                end_index = [index for index, value in enumerate(ports) if value == end_port][-1]
+                start_indexs =  [index for index, value in enumerate(ports) if value == start_port]
+                end_indexs = [index for index, value in enumerate(ports) if value == end_port]
+                
+                start_index, end_index = get_port_start_end_index(start_indexs, end_indexs)
                 
                 if start_index >= end_index:
                     continue
@@ -276,8 +302,10 @@ class PortsUtils(object):
             return -1
         
         # TODO 第一个出现港/最后一个
-        start_index =  [index for index, value in enumerate(ports) if value == start_port][0]
-        end_index = [index for index, value in enumerate(ports) if value == end_port][-1]
+        start_indexs =  [index for index, value in enumerate(ports) if value == start_port]
+        end_indexs = [index for index, value in enumerate(ports) if value == end_port]
+        
+        start_index, end_index = get_port_start_end_index(start_indexs, end_indexs)
         
         if start_index >= end_index:
             return -1
