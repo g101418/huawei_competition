@@ -1,4 +1,4 @@
-{'HONGKONG': 'HKHKG',
+{'HONGKONG': 'CNHKG',
  'BU': 'ARENA',
  'ARBUE': 'ARENA',
  'NLRTM': 'RTM',
