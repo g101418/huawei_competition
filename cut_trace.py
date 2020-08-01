@@ -73,6 +73,7 @@ class CutTrace(object):
 
                 start_index, end_index = -1, -1
                 i, j = 0, len(end_indexs)-1
+                # TODO 第一个出现港/最后一个
                 while i < len(start_indexs) and j >= 0 and start_indexs[i] < end_indexs[j]:
                     start_first, start_second = self.orders_ports_dict[key][start_indexs[i]][1]
                     if start_first < 0:

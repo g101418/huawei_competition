@@ -217,6 +217,7 @@ class PortsUtils(object):
                 if start_port not in ports or end_port not in ports:
                     continue
                 
+                # TODO 第一个出现港/最后一个
                 start_index =  [index for index, value in enumerate(ports) if value == start_port][0]
                 end_index = [index for index, value in enumerate(ports) if value == end_port][-1]
                 
@@ -246,6 +247,55 @@ class PortsUtils(object):
         result.sort(key=lambda x: x[1], reverse=True)
         
         return result
+    
+    def test_match_middle_port_num(self, test_trace, train_order):
+        trace = test_trace.split('-')
+        trace = list(map(lambda x: portsUtils.get_alias_name(x), trace))
+        
+        start_port = trace[0]
+        end_port = trace[-1]
+        
+        middle_ports = trace[1:-1] if len(trace) > 2 else []
+        if len(middle_ports) != 0:
+            middle_port_set = set(middle_ports)
+            
+            middle_port_near = [portsUtils.get_near_name(port) for port in middle_port_set]
+            
+            middle_port_sets = map(lambda x: frozenset(x), itertools.product(*middle_port_near))
+            middle_port_sets = set(middle_port_sets)
+        else:
+            middle_port_sets = set()
+            
+        ports = self.__orders_ports_name_dict[train_order]
+        
+        if len(ports) < 2:
+            return -1
+            
+        # 用于找到near的最高匹配值
+        if start_port not in ports or end_port not in ports:
+            return -1
+        
+        # TODO 第一个出现港/最后一个
+        start_index =  [index for index, value in enumerate(ports) if value == start_port][0]
+        end_index = [index for index, value in enumerate(ports) if value == end_port][-1]
+        
+        if start_index >= end_index:
+            return -1
+        
+        ports_set = set(ports[start_index: end_index+1]) - {start_port, end_port}
+        
+        if len(middle_port_sets) != 0:
+            temp_middle_ports_length = []
+            for middle_ports in middle_port_sets:
+                match_middle_port_len = len(middle_ports & ports_set)
+                temp_middle_ports_length.append(match_middle_port_len)
+            
+            match_middle_port_len = max(temp_middle_ports_length)
+        else:
+            match_middle_port_len = 0
+        
+        return len(middle_ports), match_middle_port_len
+        
     
     def get_max_match_ports(self, trace, cut_level=1, cut_num=400, matching_down=True):
         result = self.match_middle_port(trace)
