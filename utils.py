@@ -389,6 +389,61 @@ class PortsUtils(object):
         # TODO
         return
 
+class DataAnalyseUtil(object):
+
+    # 包含各种用于分析处理数据的工具
+    # def __init__(self):
+
+
+    # 用于获取去重后还剩余的运单号
+    def get_drop_duplicated_order_list(self, train_data):
+        temp_train_data = train_data.drop_duplicates(subset=['vesselMMSI', 'timestamp'], keep='first', inplace=False)
+        temp_train_data_order_list = temp_train_data.loadingOrder.unique().tolist()
+        return temp_train_data_order_list
+
+    # 根据剩余的运单号从原文件截取出新的数据集
+    @timethis
+    def get_drop_duplicated_data(self, train_data):
+        temp_train_data_order_list = self.get_drop_duplicated_order_list(train_data)
+        new_train_data = train_data.loc[train_data['loadingOrder'].isin(temp_train_data_order_list)]
+        new_train_data.sort_values(['loadingOrder', 'timestamp'], inplace=True)
+        new_train_data = new_train_data.reset_index(drop=True)
+        
+        return new_train_data
+
+    # 删除换船数据
+    @timethis
+    def delete_change_mssi_row(self, train_data):
+        def get_delete_row_indexs(x):
+            mssi = x.vesselMMSI.unique().tolist()
+            if len(mssi) > 1:
+                mssi_lengths = []
+                
+                for ms in mssi:
+                    ms_df = x[x['vesselMMSI']==ms]
+                    mssi_lengths.append([ms, len(ms_df)])
+                
+                mssi_lengths.sort(key=lambda x:x[1], reverse=True)
+                
+                max_mssi = mssi_lengths[0][0]
+                
+                ms_df_not_index_list = x[x['vesselMMSI']!=max_mssi].index.tolist()
+                
+                return ms_df_not_index_list
+            
+            return []
+            
+        delete_row_indexs = train_data_.groupby('loadingOrder').parallel_apply(lambda x: get_delete_row_indexs(x))
+
+        delete_indexs=delete_row_indexs.tolist()
+        delete_indexs=[j for i in delete_indexs for j in i]
+
+        train_data_ = train_data_.drop(labels=delete_indexs, axis=0)
+        train_data_ = train_data_.sort_values(['loadingOrder', 'timestamp'])
+        train_data_ = train_data_.reset_index(drop=True)
+        
+        return train_data_
+
 
 class DrawMap(object):
     """用于绘制图案
@@ -532,6 +587,7 @@ class DrawMap(object):
 
 
 portsUtils = PortsUtils()
+dataAnalyseUtil = DataAnalyseUtil()
 
 if __name__ == '__main__':
     print("该两点间距离={0:0.3f} km".format(
