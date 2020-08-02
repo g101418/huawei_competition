@@ -322,7 +322,7 @@ class PortsUtils(object):
         else:
             match_middle_port_len = 0
         
-        return len(middle_ports), match_middle_port_len
+        return len(set(middle_ports)), match_middle_port_len
         
     
     def get_max_match_ports(self, trace, cut_level=1, cut_num=400, matching_down=True):
