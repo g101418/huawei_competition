@@ -306,11 +306,11 @@ class PortsUtils(object):
         ports = self.__orders_ports_name_dict[train_order]
         
         if len(ports) < 2:
-            return -1, -1
+            return -1
             
         # 用于找到near的最高匹配值
         if start_port not in ports or end_port not in ports:
-            return -1, -1
+            return -1
         
         # TODO 第一个出现港/最后一个
         start_indexs =  [index for index, value in enumerate(ports) if value == start_port]
@@ -319,7 +319,7 @@ class PortsUtils(object):
         start_index, end_index = get_port_start_end_index(start_indexs, end_indexs)
         
         if start_index >= end_index:
-            return -1, -1
+            return -1
         
         ports_set = set(ports[start_index: end_index+1]) - {start_port, end_port}
         
@@ -333,7 +333,7 @@ class PortsUtils(object):
         else:
             match_middle_port_len = 0
         
-        return len(set(middle_ports)), match_middle_port_len
+        return match_middle_port_len
         
     
     def get_max_match_ports(self, trace, cut_level=1, cut_num=400, matching_down=True):
