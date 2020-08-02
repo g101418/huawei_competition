@@ -274,6 +274,17 @@ class PortsUtils(object):
         
         return result
     
+    def get_test_middle_port_num(self, test_trace):
+        trace = test_trace.split('-')
+        trace = list(map(lambda x: portsUtils.get_alias_name(x), trace))
+        
+        start_port = trace[0]
+        end_port = trace[-1]
+        
+        middle_ports = trace[1:-1] if len(trace) > 2 else []
+        
+        return len(set(middle_ports))
+    
     def test_match_middle_port_num(self, test_trace, train_order):
         trace = test_trace.split('-')
         trace = list(map(lambda x: portsUtils.get_alias_name(x), trace))
