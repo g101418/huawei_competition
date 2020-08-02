@@ -593,7 +593,7 @@ class DrawMap(object):
 
 
 portsUtils = PortsUtils()
-dataAnalyseUtil = DataAnalyseUtil()
+dataAnalyseUtils = DataAnalyseUtils()
 
 if __name__ == '__main__':
     print("该两点间距离={0:0.3f} km".format(
