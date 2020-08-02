@@ -26,6 +26,10 @@ class Config:
 
         self.train_gps_path = self.data_dir_path + 'train0711.csv'
         self.train_data_dup = self.data_dir_path + 'train_dup.csv'
+        self.train_data_dup_direc = self.data_dir_path + 'train_dup_direc.csv'
+        self.train_data_dup_direc_drift = self.data_dir_path + 'train_dup_direc_drift.csv'
+        self.train_data_dup_direc_drift_mmsi = self.data_dir_path + 'train_dup_direc_drift_mmsi.csv'
+        
         self.train_data_drift_dup = self.data_dir_path + 'train_drift_dup.csv'
         self.train_data_drift_dup_direc = self.data_dir_path + 'train_drift_dup_direc.csv'
         self.train_data_drift_dup_direc_MMSI = self.data_dir_path + 'train_drift_dup_direc_MMSI.csv'
