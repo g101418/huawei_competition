@@ -411,6 +411,12 @@ class DataAnalyseUtil(object):
         
         return new_train_data
 
+    # 删除direction异常
+    @timethis
+    def delete_direction_error_row(self, train_data):
+        train_data_ = train_data[(train_data['direction']>=0)&(train_data['direction']<=36000)].reset_index(drop=True)
+        return train_data_
+    
     # 删除换船数据
     @timethis
     def delete_change_mssi_row(self, train_data):
