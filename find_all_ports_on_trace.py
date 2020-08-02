@@ -200,7 +200,12 @@ class FindPorts(object):
         self.orders_ports_dict = orders_ports_dict_
 
     @timethis
-    def find_ports(self, train_data=None, ordername=None):
+    def find_ports(self, train_data=None, ordername=None,
+                   distance_threshold=25, speed_threshold=2):
+        
+        self.distance_threshold = distance_threshold
+        self.speed_threshold = speed_threshold
+        
         if train_data is None:
             train_data = self.train_data
 
@@ -231,7 +236,7 @@ if __name__ == '__main__':
     pandarallel.initialize(nb_workers=config.nb_workers)
 
     
-    orders_ports_dict = findPorts.find_ports(train_data)
+    orders_ports_dict = findPorts.find_ports(train_data, distance_threshold=25, speed_threshold=2)
     
     with open(config.tool_file_dir_path + 'orders_ports_dict_0714.txt', 'w') as f:
         f.write(str(orders_ports_dict))
