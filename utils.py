@@ -389,7 +389,7 @@ class PortsUtils(object):
         # TODO
         return
 
-class DataAnalyseUtil(object):
+class DataAnalyseUtils(object):
 
     # 包含各种用于分析处理数据的工具
     # def __init__(self):
@@ -419,7 +419,7 @@ class DataAnalyseUtil(object):
     
     # 删除换船数据
     @timethis
-    def delete_change_mssi_row(self, train_data):
+    def delete_change_mmsi_row(self, train_data):
         def get_delete_row_indexs(x):
             mssi = x.vesselMMSI.unique().tolist()
             if len(mssi) > 1:
