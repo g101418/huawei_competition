@@ -3,6 +3,7 @@ import itertools
 import heapq
 import time
 import functools
+import yagmail
 
 from config import config
 
@@ -70,6 +71,16 @@ def timethis(func):
         return result
     return wrapper
 
+def send_mail(password=None, subject=None, contents=None):
+    if password is None: print('缺少密码'); return;
+    if subject is None : print('缺少标题'); return;
+    if contents is None: print('缺少内容'); return;
+    
+    try:
+        yag=yagmail.SMTP(user='gao101418@163.com', password=password, host='smtp.163.com')
+        yag.send(to=['1014186239@qq.com'], subject=subject, contents=contents)
+    except:
+        traceback.print_exc()
 class PortsUtils(object):
     """用于处理港口相关的数据
     包括根据经纬度获取港口，港口名字转换

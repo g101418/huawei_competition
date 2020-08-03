@@ -6,7 +6,7 @@
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
 from cut_trace import CutTrace
-from utils import portsUtils
+from utils import portsUtils, send_mail
 from config import config
 
 import numpy as np
@@ -20,9 +20,6 @@ import heapq
 import traceback
 
 from pandarallel import pandarallel
-import yagmail
-
-
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -540,14 +537,10 @@ if __name__ == "__main__":
             f.write(str(final_order_label_dict))
             
     except:
-        yag=yagmail.SMTP(user='gao101418@163.com', password=password, host='smtp.163.com')
-        yag.send(to=['1014186239@qq.com'], subject='traj_match '+dict_name+' 出错', contents=contents)
+        send_mail(password=password, subject='traj_match '+dict_name+' 出错', contents=contents)
         traceback.print_exc()
     else:
-        yag=yagmail.SMTP(user='gao101418@163.com', password=password, host='smtp.163.com')
-        yag.send(to=['1014186239@qq.com'], subject='traj_match '+dict_name+' 运行完毕', contents=contents)
-    # yag=yagmail.SMTP(user='gao101418@163.com', password='XXXXXXXXXXX', host='smtp.163.com')
-    # yag.send(to=['1014186239@qq.com'], subject='traj_match 运行完毕', contents=['程序运行完毕'])
+        send_mail(password=password, subject='traj_match '+dict_name+' 运行完毕', contents=contents)
     
 # TODO 别名处理
 # TODO 无用代码删除
