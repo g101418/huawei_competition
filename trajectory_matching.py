@@ -71,13 +71,14 @@ class TrajectoryMatching(object):
         self.__vessel_name = vessel_name if vessel_name in ['carrierName', 'vesselMMSI'] else ''
         
 
-    def __get_match_df(self, start_port, end_port, reset_index=True):
+    def __get_match_df(self, start_port, end_port, reset_index=True, use_near=True):
         """得到与trace相关的训练集，训练集可选是否排序
         如果没有相关df，则返回None
         Args:
             start_port (str): 起始港
             end_port (str): 终点港
             reset_index (Bool): 选择是否返回index重排的df，默认重排序
+            use_near (Bool): 选择是否使用附近港
 
         Returns:
             match_df (pd.DataFrame): 与trace相关的训练集，可选择是否排序
@@ -91,8 +92,11 @@ class TrajectoryMatching(object):
             start_port_near_names = portsUtils.get_near_name(start_port)
             end_port_near_names = portsUtils.get_near_name(end_port)
             
-            near_name_pairs = [(i,j) for i in start_port_near_names for j in end_port_near_names]
-            
+            if use_near:
+                near_name_pairs = [(i,j) for i in start_port_near_names for j in end_port_near_names]
+            else:
+                near_name_pairs = [(start_port, end_port)]
+                
             results = []
             for item in near_name_pairs:
                 result = self.__cutTrace.get_use_indexs(item[0], item[1])
@@ -305,13 +309,14 @@ class TrajectoryMatching(object):
         result_order, result_label = self.get_final_label(order, trace, traj, test_data_, for_parallel=for_parallel)
         return [order, result_order, result_label]
 
-    def get_related_df(self, start_port, end_port):
+    def get_related_df(self, start_port, end_port, use_near=True):
         """引入字典，根据trace得到相关DataFrame
         输入参数应该已经通过map映射，即使用get_test_trace()函数得到的数据。
         如果没有相关df，则返回None
         Args:
             start_port (str): 起始港名称
             end_port (str): 终止港名称
+            use_near (Bool): 选择是否使用附近港
 
         Returns:
             (pd.DataFrame): 根据起止港路由得到的匹配df(match_df)
@@ -323,7 +328,7 @@ class TrajectoryMatching(object):
             return self.match_df_dict[trace_str]
         else:
             match_df = self.__get_match_df(
-                start_port, end_port, reset_index=True)
+                start_port, end_port, reset_index=True, use_near=use_near)
 
             if match_df is not None:
                 self.match_df_dict[trace_str] = match_df.copy()
