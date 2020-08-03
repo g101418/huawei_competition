@@ -358,12 +358,10 @@ class PortsUtils(object):
             return -1
         
         match_middle_port_len_for_near = []
-        find_start_end_port = False
         for start_port, end_port in near_name_pairs:
             # 用于找到near的最高匹配值
             if start_port not in ports or end_port not in ports:
                 continue
-            find_start_end_port = True
             
             # TODO 第一个出现港/最后一个
             start_indexs =  [index for index, value in enumerate(ports) if value == start_port]
@@ -388,10 +386,10 @@ class PortsUtils(object):
                 
             match_middle_port_len_for_near.append(match_middle_port_len)
         
-        if not find_start_end_port:
+        if len(match_middle_port_len_for_near) == 0:
             return -1
         
-        return max(match_middle_port_len)
+        return max(match_middle_port_len_for_near)
         
 
     def merge_port(self, port_name_1, port_name_2):
