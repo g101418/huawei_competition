@@ -502,7 +502,6 @@ if __name__ == "__main__":
     pandarallel.initialize(nb_workers=config.nb_workers)
 
     dict_name = '0721'
-    password = 'XXXXXXXXX'
     kwargs = {
         'geohash_precision': 5, 
         'cut_distance_threshold': 1.3, 
@@ -537,10 +536,10 @@ if __name__ == "__main__":
             f.write(str(final_order_label_dict))
             
     except:
-        send_mail(password=password, subject='traj_match '+dict_name+' 出错', contents=contents)
+        send_mail(subject='traj_match '+dict_name+' 出错', contents=contents)
         traceback.print_exc()
     else:
-        send_mail(password=password, subject='traj_match '+dict_name+' 运行完毕', contents=contents)
+        send_mail(subject='traj_match '+dict_name+' 运行完毕', contents=contents)
     
 # TODO 别名处理
 # TODO 无用代码删除

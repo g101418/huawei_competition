@@ -71,7 +71,7 @@ def timethis(func):
         return result
     return wrapper
 
-def send_mail(password=None, subject=None, contents=None):
+def send_mail(password='XXXXXXXXXXX', subject=None, contents=None):
     if password is None: print('缺少密码'); return;
     if subject is None : print('缺少标题'); return;
     if contents is None: print('缺少内容'); return;
