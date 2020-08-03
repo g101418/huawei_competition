@@ -34,6 +34,7 @@ class TrajectoryMatching(object):
                  geohash_precision=4, 
                  metric="sspd",
                  cut_distance_threshold=1.3,
+                 use_near=True,
                  mean_label_num=1,
                  top_N_for_parallel=10,
                  cut_level=1,
@@ -66,6 +67,7 @@ class TrajectoryMatching(object):
         self.__cut_num = cut_num
         self.__after_cut_mean_num = after_cut_mean_num
         self.__matching_down = matching_down
+        self.__use_near = use_near
         
         self.__get_label_way = get_label_way if get_label_way in ['mean', 'min', 'median'] else 'mean'
         self.__vessel_name = vessel_name if vessel_name in ['carrierName', 'vesselMMSI'] else ''
@@ -219,7 +221,7 @@ class TrajectoryMatching(object):
 
         return order_list, trace_list, traj_list
         
-    def get_related_df_len(self, start_port, end_port):
+    def get_related_df_len(self, start_port, end_port, use_near=True):
         """得到trace相关df中订单的数量
 
         Args:
@@ -230,7 +232,7 @@ class TrajectoryMatching(object):
             [int]: 相关df中订单的数量
         """
         
-        result = self.get_related_df(start_port, end_port)
+        result = self.get_related_df(start_port, end_port, use_near=use_near)
         if result is None:
             return 0
         return result.loadingOrder.nunique()
@@ -417,14 +419,19 @@ class TrajectoryMatching(object):
         length_list = []
         if order is None:
             for i in range(len(order_list)):
-                length = self.get_related_df_len(
-                    trace_list[i][0], trace_list[i][1])
+                length = self.get_related_df_len(trace_list[i][0], trace_list[i][1], use_near=self.__use_near)
+                if not self.__use_near and length == 0:
+                    length = self.get_related_df_len(trace_list[i][0], trace_list[i][1], use_near=True)
+                    
                 length_list.append(length)
                 if length != 0:
                     matched_index_list_all.append(i)
         else:
             order_index = order_list.index(order)
-            length = self.get_related_df_len(trace_list[order_index][0], trace_list[order_index][1])
+            length = self.get_related_df_len(trace_list[order_index][0], trace_list[order_index][1], use_near=self.__use_near)
+            if not self.__use_near and length == 0:
+                length = self.get_related_df_len(trace_list[order_index][0], trace_list[order_index][1], use_near=True)
+                    
             length_list = [-1] * order_index
             length_list.append(length)
             if length != 0:
@@ -511,6 +518,7 @@ if __name__ == "__main__":
         'geohash_precision': 5, 
         'cut_distance_threshold': 1.3, 
         'metric': 'sspd', 
+        'use_near': True,
         'mean_label_num': 40, 
         'top_N_for_parallel': 20,
         'cut_level': 2,
