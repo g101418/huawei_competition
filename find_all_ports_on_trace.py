@@ -30,9 +30,9 @@ class FindPorts(object):
         count = 0
         left = len(myList) - 1
         right = len(myList) - 1
-
+        
         while 0 <= left <= right:
-            while myList[left] == 0:
+            while left >= 0 and myList[left] == 0:
                 if myList[right] != 0:
                     right = left
                 count += 1
