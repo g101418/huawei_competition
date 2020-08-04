@@ -11,6 +11,7 @@ import itertools
 
 import pandas as pd
 import numpy as np
+import traceback
 
 from config import config
 from utils import haversine, portsUtils, timethis
@@ -213,7 +214,7 @@ class FindPorts(object):
                 
                 port_df_speed_is_0 = port_df[port_df['speed'] == 0]
                 
-                if len(port_df) < 2:
+                if len(port_df_speed_is_0) < 2:
                     continue
                 
                 port_df_speed_is_0 = port_df.loc[port_df_speed_is_0.index[0]: port_df_speed_is_0.index[-1]]
