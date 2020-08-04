@@ -213,7 +213,7 @@ class FindPorts(object):
                 
                 port_df_speed_is_0 = port_df[port_df['speed'] == 0]
                 
-                if len(port_df) == 0:
+                if len(port_df) < 2:
                     continue
                 
                 port_df_speed_is_0 = port_df.loc[port_df_speed_is_0.index[0]: port_df_speed_is_0.index[-1]]
