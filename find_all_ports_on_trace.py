@@ -26,6 +26,28 @@ class FindPorts(object):
         self.distance_threshold = distance_threshold
         self.speed_threshold = speed_threshold
 
+    def __getIndexOfLastKZero(self, myList, k):
+        count = 0
+        left = len(myList) - 1
+        right = len(myList) - 1
+
+        while 0 <= left <= right:
+            while myList[left] == 0:
+                if myList[right] != 0:
+                    right = left
+                count += 1
+                left -= 1
+
+            if count >= k:
+                return list(range(left+1, right+1))
+            else:
+                right = left
+                left -= 1
+                count = 0
+
+        if count < k:
+            return []
+
     def find_all_ports_from_order(self, df):
         """
         用于发现轨迹中所有经过的港口
@@ -193,25 +215,9 @@ class FindPorts(object):
                 port_df_speed_is_0 = port_df.loc[port_df_speed_is_0.index[0]: port_df_speed_is_0.index[-1]]
                 
                 speed_list = port_df_speed_is_0.speed.tolist()
-                speed_num_list = []
-                for index, speed in enumerate(speed_list):
-                    
-                    if len(speed_num_list) == 0:
-                        speed_num_list.append([speed, [index]])
-                        continue
-                    
-                    if speed_num_list[-1][0] == speed:
-                        speed_num_list[-1][1].append(index)
-                    else:
-                        speed_num_list.append([speed, [index]])
-                        continue
-
-                final_0_speed_indexs = []
-                for speed, indexs in speed_num_list[::-1]:
-                    if speed == 0 and len(indexs) >= 3:
-                        final_0_speed_indexs = indexs
-                        break
-                    
+                
+                final_0_speed_indexs = self.__getIndexOfLastKZero(speed_list, 3)
+                
                 if len(final_0_speed_indexs) != 0:
                     value_.append([port_name, 
                                    [port_df_speed_is_0.index[0]+final_0_speed_indexs[0], 
