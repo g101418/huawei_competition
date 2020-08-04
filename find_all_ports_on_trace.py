@@ -189,11 +189,34 @@ class FindPorts(object):
                 
                 port_df = train_data.loc[start_index: end_index]
                 
-                port_df_speed_not_0 = port_df[port_df['speed'] <= 1]
+                port_df_speed_is_0 = port_df[port_df['speed'] == 0]
+                port_df_speed_is_0 = port_df.loc[port_df_speed_is_0.index[0]: port_df_speed_is_0.index[-1]]
                 
+                speed_list = port_df_speed_is_0.speed.tolist()
+                speed_num_list = []
+                for index, speed in enumerate(speed_list):
+                    
+                    if len(speed_num_list) == 0:
+                        speed_num_list.append([speed, [index]])
+                        continue
+                    
+                    if speed_num_list[-1][0] == speed:
+                        speed_num_list[-1][1].append(index)
+                    else:
+                        speed_num_list.append([speed, [index]])
+                        continue
+
+                final_0_speed_indexs = []
+                for speed, indexs in speed_num_list[::-1]:
+                    if speed == 0 and len(indexs) >= 3:
+                        final_0_speed_indexs = indexs
+                        break
+                    
+                if len(final_0_speed_indexs) != 0:
+                    value_.append([port_name, 
+                                   [port_df_speed_is_0.index[0]+final_0_speed_indexs[0], 
+                                    port_df_speed_is_0.index[0]+final_0_speed_indexs[-1]]])
                 
-                if len(port_df_speed_not_0) != 0:
-                    value_.append([port_name, [port_df_speed_not_0.index[0], port_df_speed_not_0.index[-1]]])
             
             orders_ports_dict_[key] = value_  
               
