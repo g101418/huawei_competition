@@ -254,6 +254,7 @@ class TrajectoryMatching(object):
             result, is_after_cut = self.modify_traj_label(test_data, for_parallel=for_parallel)
             train_order_list, train_label_list, train_traj_list = result
             if train_label_list is None or len(train_label_list) == 0:
+                print('get_final_label，切割后为空', order)
                 return None, None
         except:
             traceback.print_exc()
@@ -363,11 +364,13 @@ class TrajectoryMatching(object):
         trace_str = strat_port+'-'+end_port
         
         if trace_str not in self.match_df_dict:
+            print('modify_traj_label，trace_str不在字典内', order)
             return [None, None, None], None
         
         match_df = self.match_df_dict[trace_str]
         
         if len(match_df) == 0:
+            print('modify_traj_label，match_df为空', order)
             return [None, None, None], None
         
         for i in range(10):
@@ -378,6 +381,7 @@ class TrajectoryMatching(object):
                 break
             
         if len(match_df_temp) == 0:
+            print('modify_traj_label，match_df_temp为空', order)
             return [None, None, None], None
         
         match_df = match_df_temp
@@ -401,6 +405,7 @@ class TrajectoryMatching(object):
                     df, match_df, self.cut_distance_threshold, for_parallel=for_parallel)
             
             if len(cutted_df) == 0:
+                print('modify_traj_label，cutted_df为空', order)
                 return [None, None, None], None
         except:
             traceback.print_exc()
@@ -449,7 +454,7 @@ class TrajectoryMatching(object):
             if length != 0:
                 matched_index_list_all.append(order_index)
             else:
-                print('匹配轨迹长度为0')
+                print('process，匹配轨迹长度为0', order)
                 return [[order, None, None]]
             
             
@@ -509,6 +514,7 @@ class TrajectoryMatching(object):
         final_order_label += top_N_final_order_label
         if order is None:
             for order in unmatched_order_list:
+                print('related_df为空', order)
                 final_order_label.append([order, None, None])
         
         print('全部处理完毕')
