@@ -305,7 +305,11 @@ class CutTrace(object):
                     return [use_df_label]
                 else:
                     return [pd.DataFrame(columns=df.columns)]
-            
+        
+        if len(match_df) == 0:
+            print('match_df为空')
+            return pd.DataFrame(columns=match_df.columns)
+        
         if for_parallel == False:
             use_df = match_df.groupby('loadingOrder').apply(
                 lambda x:while_for_cut_multi(x)).tolist()
@@ -313,9 +317,10 @@ class CutTrace(object):
             use_df = match_df.groupby('loadingOrder').parallel_apply(
                 lambda x:while_for_cut_multi(x)).tolist()
         
+        use_df = list(map(lambda x: x[0], use_df))
+        
         use_df_ = pd.DataFrame()
-        for item in use_df:
-            use_df_ = use_df_.append(item[0], ignore_index=True)
+        use_df_ = use_df_.append(use_df, ignore_index=True)
         
         use_df_ = use_df_.reset_index(drop=True)
 

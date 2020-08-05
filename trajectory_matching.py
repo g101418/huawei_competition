@@ -37,7 +37,7 @@ class TrajectoryMatching(object):
                  use_near=True,
                  mean_label_num=1,
                  top_N_for_parallel=10,
-                 cut_level=1,
+                 cut_level=1000,
                  matching_down=True,
                  cut_num=400,
                  after_cut_mean_num=-1,
@@ -251,12 +251,14 @@ class TrajectoryMatching(object):
             order, label (str, pd.Timedelta) :订单名称、时间差
         """
         try:
-            (train_order_list, train_label_list, train_traj_list), is_after_cut = self.modify_traj_label(test_data, for_parallel=for_parallel)
+            result, is_after_cut = self.modify_traj_label(test_data, for_parallel=for_parallel)
+            train_order_list, train_label_list, train_traj_list = result
             if train_label_list is None or len(train_label_list) == 0:
                 return None, None
         except:
             traceback.print_exc()
             print('error:', order, 'modify_traj_label')
+            return None, None
             
         try:
             cdist = list(tdist.cdist(
@@ -368,9 +370,18 @@ class TrajectoryMatching(object):
         if len(match_df) == 0:
             return [None, None, None], None
         
-        port_match_orders, is_single_level = portsUtils.get_max_match_ports(trace_, cut_level=self.__cut_level, cut_num=self.__cut_num, matching_down=self.__matching_down)
-        match_df = match_df[match_df['loadingOrder'].isin(port_match_orders)].reset_index(drop=True)
-
+        for i in range(10):
+            port_match_orders, is_single_level = portsUtils.get_max_match_ports(trace_, cut_level=self.__cut_level+i, cut_num=self.__cut_num, matching_down=self.__matching_down)
+            match_df_temp = match_df[match_df['loadingOrder'].isin(port_match_orders)].reset_index(drop=True)
+            
+            if len(match_df_temp) != 0:
+                break
+            
+        if len(match_df_temp) == 0:
+            return [None, None, None], None
+        
+        match_df = match_df_temp
+        
         try:
             if len(self.__vessel_name) > 0:
                 match_df_ = match_df[match_df[self.__vessel_name]==test_data[self.__vessel_name].unique().tolist()[0]]
@@ -388,13 +399,14 @@ class TrajectoryMatching(object):
             else:
                 cutted_df = self.__cutTrace.cut_trace_for_test(
                     df, match_df, self.cut_distance_threshold, for_parallel=for_parallel)
+            
+            if len(cutted_df) == 0:
+                return [None, None, None], None
         except:
             traceback.print_exc()
             print('船号匹配处错误，test_order:',order)
-            
-        
-        if len(cutted_df) == 0:
             return [None, None, None], None
+            
         
         traj_list_label_series = cutted_df.groupby('loadingOrder')[[
             'timestamp', 'longitude', 'latitude']].apply(lambda x: self.__get_traj_list_label(x, for_traj=False))
@@ -505,7 +517,7 @@ class TrajectoryMatching(object):
         return final_order_label
 
 if __name__ == "__main__":
-    train_data_path = config.train_data_drift_dup
+    train_data_path = config.train_data_dup_direc_drift
     test_data_path = config.test_data_drift
     
     train_data = pd.read_csv(train_data_path)
@@ -513,19 +525,19 @@ if __name__ == "__main__":
 
     pandarallel.initialize(nb_workers=config.nb_workers)
 
-    dict_name = '0721'
+    dict_name = '0805'
     kwargs = {
         'geohash_precision': 5, 
         'cut_distance_threshold': 1.3, 
         'metric': 'sspd', 
         'use_near': True,
-        'mean_label_num': 40, 
-        'top_N_for_parallel': 20,
+        'mean_label_num': 15, 
+        'top_N_for_parallel': 55,
         'cut_level': 2,
         'matching_down': True,
-        'cut_num': 400,
-        'after_cut_mean_num': 2,
-        'get_label_way': 'min',
+        'cut_num': 1500,
+        'after_cut_mean_num': 3,
+        'get_label_way': 'mean',
         'vessel_name': '__'
         }
     contents = [key+'='+str(value) for key,value in kwargs.items()]
