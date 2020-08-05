@@ -228,7 +228,8 @@ class FindPorts(object):
                 
                 speed_list = port_df_speed_is_0.speed.tolist()
                 
-                final_0_speed_indexs = self.__getIndexOfLastKZero(speed_list, 3)
+                # final_0_speed_indexs = self.__getIndexOfLastKZero(speed_list, 3)
+                final_0_speed_indexs = [0, len(speed_list)-1]
                 
                 if len(final_0_speed_indexs) != 0:
                     value_.append([port_name, 
