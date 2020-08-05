@@ -221,20 +221,8 @@ class FindPorts(object):
                 
                 port_df_speed_is_0 = port_df[port_df['speed'] == 0]
                 
-                if len(port_df_speed_is_0) < 2 or len(port_df) < 2:
-                    continue
-                
-                port_df_speed_is_0 = port_df.loc[port_df_speed_is_0.index[0]: port_df_speed_is_0.index[-1]]
-                
-                speed_list = port_df_speed_is_0.speed.tolist()
-                
-                # final_0_speed_indexs = self.__getIndexOfLastKZero(speed_list, 3)
-                final_0_speed_indexs = [0, len(speed_list)-1]
-                
-                if len(final_0_speed_indexs) != 0:
-                    value_.append([port_name, 
-                                   [port_df_speed_is_0.index[0]+final_0_speed_indexs[0], 
-                                    port_df_speed_is_0.index[0]+final_0_speed_indexs[-1]]])
+                if len(port_df_speed_is_0) != 0:
+                    value_.append([port_name, [port_df_speed_is_0.index[0], port_df_speed_is_0.index[-1]]])
                 
             
             orders_ports_dict_[key] = value_  
