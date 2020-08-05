@@ -99,7 +99,7 @@ class FindPorts(object):
                     if len(ports) == 0:
                         ports.append([port, [i, -1]])
                     elif ports[-1][0] == port:  # 还在该港口内
-                        if exit_port_time is not None and ((exit_port_time-cur_time).total_seconds() / 3600) > 15.0:
+                        if exit_port_time is not None and ((cur_time-exit_port_time).total_seconds() / 3600) > 15.0:
                             ports[-1][1][0] = i
                         exit_port_time = cur_time
                         last_port_end_index = i
