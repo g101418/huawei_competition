@@ -272,7 +272,7 @@ class FindPorts(object):
 findPorts = FindPorts()
 
 if __name__ == '__main__':
-    train_data = pd.read_csv(config.train_data_drift_dup)
+    train_data = pd.read_csv(config.train_data_dup_direc_drift)
 
     # progress_bar=True
     pandarallel.initialize(nb_workers=config.nb_workers)
@@ -280,5 +280,5 @@ if __name__ == '__main__':
     
     orders_ports_dict = findPorts.find_ports(train_data, distance_threshold=25, speed_threshold=2)
     
-    with open(config.tool_file_dir_path + 'orders_ports_dict_0714.txt', 'w') as f:
+    with open(config.tool_file_dir_path + 'orders_ports_dict_0805.txt', 'w') as f:
         f.write(str(orders_ports_dict))
