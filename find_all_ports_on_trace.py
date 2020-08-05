@@ -65,6 +65,9 @@ class FindPorts(object):
         cur_in_port_state = False  # 跳变记录
         last_port_end_index = -1
         final_port_end_index = -1
+        
+        # 处理塞港
+        exit_port_time = -1
         for i in range(df.index[0], df.index[-1]):
 
             if next_time is not None:
@@ -96,11 +99,15 @@ class FindPorts(object):
                     if len(ports) == 0:
                         ports.append([port, [i, -1]])
                     elif ports[-1][0] == port:  # 还在该港口内
+                        if exit_port_time != -1 and ((next_time-cur_time).total_seconds() / 3600) > 15.0:
+                            ports[-1][1][0] = i
+                        exit_port_time = cur_time
                         last_port_end_index = i
                     else:  # 别的港口
                         ports[-1][1][1] = - \
                             1 if last_port_end_index < ports[-1][1][0] else last_port_end_index
                         ports.append([port, [i, -1]])
+                        exit_port_time = -1
                 else:
                     cur_in_port_state = False
             else:
