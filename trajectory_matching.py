@@ -539,6 +539,7 @@ if __name__ == "__main__":
         'cut_distance_threshold': 1.3, 
         'metric': 'sspd', 
         'use_near': True,
+        'match_start_end_port': False,
         'mean_label_num': 15, 
         'top_N_for_parallel': 55,
         'cut_level': 2,
