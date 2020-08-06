@@ -62,6 +62,8 @@ class CutTrace(object):
             if len(self.__orders_ports_name_dict[key]) < 2:
                 continue
             if start_port in self.__orders_ports_name_dict[key] and end_port in self.__orders_ports_name_dict[key]:
+                if start_port != self.__orders_ports_name_dict[key][0][0] or end_port != self.__orders_ports_name_dict[key][-1][0]:
+                    continue
                 # 起止港均在内
                 start_indexs = [i for i in range(len(
                     self.__orders_ports_name_dict[key])) if self.__orders_ports_name_dict[key][i] == start_port]
