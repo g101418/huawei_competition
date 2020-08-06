@@ -27,28 +27,6 @@ class FindPorts(object):
         self.distance_threshold = distance_threshold
         self.speed_threshold = speed_threshold
 
-    def __getIndexOfLastKZero(self, myList, k):
-        count = 0
-        left = len(myList) - 1
-        right = len(myList) - 1
-        
-        while 0 <= left <= right:
-            while left >= 0 and myList[left] == 0:
-                if myList[right] != 0:
-                    right = left
-                count += 1
-                left -= 1
-
-            if count >= k:
-                return list(range(left+1, right+1))
-            else:
-                right = left
-                left -= 1
-                count = 0
-
-        if count < k:
-            return []
-
     def find_all_ports_from_order(self, df):
         """
         用于发现轨迹中所有经过的港口
@@ -67,7 +45,9 @@ class FindPorts(object):
         final_port_end_index = -1
         
         # 处理塞港
-        exit_port_time = None
+        in_this_port = False
+        exit_port = False
+        this_port = None
         try:
             for i in range(df.index[0], df.index[-1]):
 
@@ -100,18 +80,35 @@ class FindPorts(object):
                         if len(ports) == 0:
                             ports.append([port, [i, -1]])
                         elif ports[-1][0] == port:  # 还在该港口内
-                            if exit_port_time is not None and ((cur_time-exit_port_time).total_seconds() / 3600) > 15.0:
+                            if exit_port:
                                 ports[-1][1][0] = i
-                            exit_port_time = cur_time
+                                exit_port = False
+                            in_this_port = True
+                            this_port = port
                             last_port_end_index = i
                         else:  # 别的港口
                             ports[-1][1][1] = - \
                                 1 if last_port_end_index < ports[-1][1][0] else last_port_end_index
                             ports.append([port, [i, -1]])
-                            exit_port_time = None
+                            exit_port = False
+                            this_port = None
+                            in_this_port = False
+
                     else:
+                        if in_this_port:
+                            exit_port = True
+                            in_this_port = False
+                        
                         cur_in_port_state = False
                 else:
+                    if in_this_port:
+                        port = portsUtils.get_port(
+                            cur_lon, cur_lat, distance_threshold=self.distance_threshold)[0]
+                        
+                        if port is None or port != this_port:
+                            exit_port = True
+                            in_this_port = False
+
                     cur_in_port_state = False
 
                 if last_in_port_state == True and cur_in_port_state == False:
