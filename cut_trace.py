@@ -72,14 +72,14 @@ class CutTrace(object):
                     continue
 
                 start_index, end_index = -1, -1
-                i, j = len(start_indexs) - 1, 0
+                i, j = len(start_indexs) - 1, len(end_indexs) - 1
                 # TODO 第一个出现港/最后一个
-                while j < len(end_indexs) and i >= 0:
+                while j >= 0 and i >= 0:
                     if not start_indexs[i] < end_indexs[j]:
                         if i - 1 >= 0:
                             i -= 1
-                        elif j + 1 < len(end_indexs):
-                            j += 1
+                        elif j - 1 >= 0:
+                            j -= 1
                         else:
                             break
                         continue
@@ -90,7 +90,7 @@ class CutTrace(object):
                         continue
                     end_first, end_second = self.orders_ports_dict[key][end_indexs[j]][1]
                     if end_second < 0:
-                        j += 1
+                        j -= 1
                         continue
                     
                     if start_first >= end_second:
