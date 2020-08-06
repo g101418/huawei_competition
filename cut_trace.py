@@ -41,7 +41,7 @@ class CutTrace(object):
                 self.__orders_ports_name_dict[key] = [
                     k[0] for k in self.orders_ports_dict[key]]  # 港口名list
 
-    def get_use_indexs(self, start_port, end_port, line=True):
+    def get_use_indexs(self, start_port, end_port, match_start_end_port=False, line=True):
         """获取与start_port、end_port相关的轨迹的所有下标
         start_port优先匹配最靠前港，end_port优先匹配最靠后港
 
@@ -62,8 +62,10 @@ class CutTrace(object):
             if len(self.__orders_ports_name_dict[key]) < 2:
                 continue
             if start_port in self.__orders_ports_name_dict[key] and end_port in self.__orders_ports_name_dict[key]:
-                if start_port != self.__orders_ports_name_dict[key][0] or end_port != self.__orders_ports_name_dict[key][-1]:
-                    continue
+                if match_start_end_port:
+                    if (start_port != self.__orders_ports_name_dict[key][0] or 
+                        end_port != self.__orders_ports_name_dict[key][-1]):
+                        continue
                 # 起止港均在内
                 start_indexs = [i for i in range(len(
                     self.__orders_ports_name_dict[key])) if self.__orders_ports_name_dict[key][i] == start_port]

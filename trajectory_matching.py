@@ -35,6 +35,7 @@ class TrajectoryMatching(object):
                  metric="sspd",
                  cut_distance_threshold=1.3,
                  use_near=True,
+                 match_start_end_port=False,
                  mean_label_num=1,
                  top_N_for_parallel=10,
                  cut_level=1000,
@@ -68,12 +69,13 @@ class TrajectoryMatching(object):
         self.__after_cut_mean_num = after_cut_mean_num
         self.__matching_down = matching_down
         self.__use_near = use_near
+        self.__match_start_end_port = match_start_end_port
         
         self.__get_label_way = get_label_way if get_label_way in ['mean', 'min', 'median'] else 'mean'
         self.__vessel_name = vessel_name if vessel_name in ['carrierName', 'vesselMMSI'] else ''
         
 
-    def __get_match_df(self, start_port, end_port, reset_index=True, use_near=True):
+    def __get_match_df(self, start_port, end_port, reset_index=True, use_near=True, match_start_end_port=False):
         """得到与trace相关的训练集，训练集可选是否排序
         如果没有相关df，则返回None
         Args:
@@ -101,7 +103,7 @@ class TrajectoryMatching(object):
                 
             results = []
             for item in near_name_pairs:
-                result = self.__cutTrace.get_use_indexs(item[0], item[1])
+                result = self.__cutTrace.get_use_indexs(item[0], item[1], match_start_end_port=match_start_end_port)
                 results += result
             results = list(set(results))
             results.sort()
@@ -221,7 +223,7 @@ class TrajectoryMatching(object):
 
         return order_list, trace_list, traj_list
         
-    def get_related_df_len(self, start_port, end_port, use_near=True):
+    def get_related_df_len(self, start_port, end_port, use_near=True, match_start_end_port=False):
         """得到trace相关df中订单的数量
 
         Args:
@@ -232,7 +234,7 @@ class TrajectoryMatching(object):
             [int]: 相关df中订单的数量
         """
         
-        result = self.get_related_df(start_port, end_port, use_near=use_near)
+        result = self.get_related_df(start_port, end_port, use_near=use_near, match_start_end_port=match_start_end_port)
         if result is None:
             return 0
         return result.loadingOrder.nunique()
@@ -314,7 +316,7 @@ class TrajectoryMatching(object):
         result_order, result_label = self.get_final_label(order, trace, traj, test_data_, for_parallel=for_parallel)
         return [order, result_order, result_label]
 
-    def get_related_df(self, start_port, end_port, use_near=True):
+    def get_related_df(self, start_port, end_port, use_near=True, match_start_end_port=False):
         """引入字典，根据trace得到相关DataFrame
         输入参数应该已经通过map映射，即使用get_test_trace()函数得到的数据。
         如果没有相关df，则返回None
@@ -333,7 +335,7 @@ class TrajectoryMatching(object):
             return self.match_df_dict[trace_str]
         else:
             match_df = self.__get_match_df(
-                start_port, end_port, reset_index=True, use_near=use_near)
+                start_port, end_port, reset_index=True, use_near=use_near, match_start_end_port=match_start_end_port)
 
             if match_df is not None:
                 self.match_df_dict[trace_str] = match_df.copy()
@@ -436,18 +438,18 @@ class TrajectoryMatching(object):
         length_list = []
         if order is None:
             for i in range(len(order_list)):
-                length = self.get_related_df_len(trace_list[i][0], trace_list[i][1], use_near=self.__use_near)
+                length = self.get_related_df_len(trace_list[i][0], trace_list[i][1], use_near=self.__use_near, match_start_end_port=self.__match_start_end_port)
                 if not self.__use_near and length == 0:
-                    length = self.get_related_df_len(trace_list[i][0], trace_list[i][1], use_near=True)
+                    length = self.get_related_df_len(trace_list[i][0], trace_list[i][1], use_near=True, match_start_end_port=self.__match_start_end_port)
                     
                 length_list.append(length)
                 if length != 0:
                     matched_index_list_all.append(i)
         else:
             order_index = order_list.index(order)
-            length = self.get_related_df_len(trace_list[order_index][0], trace_list[order_index][1], use_near=self.__use_near)
+            length = self.get_related_df_len(trace_list[order_index][0], trace_list[order_index][1], use_near=self.__use_near, match_start_end_port=self.__match_start_end_port)
             if not self.__use_near and length == 0:
-                length = self.get_related_df_len(trace_list[order_index][0], trace_list[order_index][1], use_near=True)
+                length = self.get_related_df_len(trace_list[order_index][0], trace_list[order_index][1], use_near=True, match_start_end_port=self.__match_start_end_port)
                     
             length_list = [-1] * order_index
             length_list.append(length)
