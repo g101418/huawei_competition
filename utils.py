@@ -81,6 +81,27 @@ def send_mail(password='XXXXXXXXXXX', subject=None, contents=None):
         yag.send(to=['1014186239@qq.com'], subject=subject, contents=contents)
     except:
         traceback.print_exc()
+
+class IndexConversion(object):
+    def __init__(self, train_data, test_data=None):
+        self.__order_to_index_dict = {}
+        for order, df in train_data.groupby('loadingOrder'):
+            self.__order_to_index_dict[order] = df.index[0]
+        if test_data:
+            for order, df in test_data.groupby('loadingOrder'):
+                self.__order_to_index_dict[order] = df.index[0]
+
+    def index_conversion(self, order, index):
+        df_index_0 = self.__order_to_index_dict[order]
+
+        if index < df_index_0:
+            # 相对下标
+            return df_index_0 + index
+        else:
+            # 绝对下标
+            return index - df_index_0
+                
+
 class PortsUtils(object):
     """用于处理港口相关的数据
     包括根据经纬度获取港口，港口名字转换
@@ -522,8 +543,15 @@ class DrawMap(object):
 
         if for_train:
             df = self.__train_data
-        else:
+        elif for_test:
             df = self.__test_data
+        else:
+            if any(self.__test_data['loadingOrder'].isin([ordername])):
+                df = self.__test_data
+                for_test = True
+            else:
+                df = self.__train_data
+                for_train = True
 
         temp = df.loc[df['loadingOrder'] == ordername]
         if len(temp) == 0:
