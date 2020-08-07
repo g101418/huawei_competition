@@ -11,6 +11,7 @@ import itertools
 
 import pandas as pd
 import numpy as np
+import traceback
 
 from config import config
 from utils import haversine, portsUtils, timethis
@@ -42,59 +43,88 @@ class FindPorts(object):
         cur_in_port_state = False  # 跳变记录
         last_port_end_index = -1
         final_port_end_index = -1
-        for i in range(df.index[0], df.index[-1]):
+        
+        # 处理塞港
+        in_this_port = False
+        exit_port = False
+        this_port = None
+        try:
+            for i in range(df.index[0], df.index[-1]):
 
-            if next_time is not None:
-                cur_lon = next_lon
-                cur_lat = next_lat
-                cur_time = next_time
-            else:
-                cur_lon = df.loc[i]['longitude']
-                cur_lat = df.loc[i]['latitude']
-                cur_time = pd.to_datetime(df.loc[i, 'timestamp'])
-
-            next_lon = df.loc[i+1]['longitude']
-            next_lat = df.loc[i+1]['latitude']
-            next_time = pd.to_datetime(df.loc[i+1, 'timestamp'])
-
-            time_delta_hour = ((next_time-cur_time).total_seconds() / 3600)
-            if time_delta_hour < 0.00027778:  # 1秒
-                continue
-            distance = haversine(next_lon, next_lat, cur_lon, cur_lat)
-            speed = distance / time_delta_hour
-
-            last_in_port_state = cur_in_port_state
-
-            if speed < self.speed_threshold:
-                port = portsUtils.get_port(
-                    cur_lon, cur_lat, distance_threshold=self.distance_threshold)[0]
-                if port is not None:
-                    cur_in_port_state = True
-                    if len(ports) == 0:
-                        ports.append([port, [i, -1]])
-                    elif ports[-1][0] == port:  # 还在该港口内
-                        last_port_end_index = i
-                    else:  # 别的港口
-                        ports[-1][1][1] = - \
-                            1 if last_port_end_index < ports[-1][1][0] else last_port_end_index
-                        ports.append([port, [i, -1]])
+                if next_time is not None:
+                    cur_lon = next_lon
+                    cur_lat = next_lat
+                    cur_time = next_time
                 else:
+                    cur_lon = df.loc[i]['longitude']
+                    cur_lat = df.loc[i]['latitude']
+                    cur_time = pd.to_datetime(df.loc[i, 'timestamp'])
+
+                next_lon = df.loc[i+1]['longitude']
+                next_lat = df.loc[i+1]['latitude']
+                next_time = pd.to_datetime(df.loc[i+1, 'timestamp'])
+
+                time_delta_hour = ((next_time-cur_time).total_seconds() / 3600)
+                if time_delta_hour < 0.00027778:  # 1秒
+                    continue
+                distance = haversine(next_lon, next_lat, cur_lon, cur_lat)
+                speed = distance / time_delta_hour
+
+                last_in_port_state = cur_in_port_state
+
+                if speed < self.speed_threshold:
+                    port = portsUtils.get_port(
+                        cur_lon, cur_lat, distance_threshold=self.distance_threshold)[0]
+                    if port is not None:
+                        cur_in_port_state = True
+                        if len(ports) == 0:
+                            ports.append([port, [i, -1]])
+                        elif ports[-1][0] == port:  # 还在该港口内
+                            if exit_port:
+                                ports[-1][1][0] = i
+                                exit_port = False
+                            in_this_port = True
+                            this_port = port
+                            last_port_end_index = i
+                        else:  # 别的港口
+                            ports[-1][1][1] = - \
+                                1 if last_port_end_index < ports[-1][1][0] else last_port_end_index
+                            ports.append([port, [i, -1]])
+                            exit_port = False
+                            this_port = None
+                            in_this_port = False
+
+                    else:
+                        if in_this_port:
+                            exit_port = True
+                            in_this_port = False
+                        
+                        cur_in_port_state = False
+                else:
+                    if in_this_port:
+                        port = portsUtils.get_port(
+                            cur_lon, cur_lat, distance_threshold=self.distance_threshold)[0]
+                        
+                        if port is None or port != this_port:
+                            exit_port = True
+                            in_this_port = False
+
                     cur_in_port_state = False
-            else:
-                cur_in_port_state = False
 
-            if last_in_port_state == True and cur_in_port_state == False:
-                final_port_end_index = i
+                if last_in_port_state == True and cur_in_port_state == False:
+                    final_port_end_index = i
 
-        # ! 此处修改了，但不敢确保无事
-        if len(ports) != 0 and ports[-1][1][1] == -1:
-            if cur_in_port_state == True:
-                ports[-1][1][1] = i + 1
-            else:
-                ports[-1][1][1] = final_port_end_index if final_port_end_index != -1 else i + 1
+            # ! 此处修改了，但不敢确保无事
+            if len(ports) != 0 and ports[-1][1][1] == -1:
+                if cur_in_port_state == True:
+                    ports[-1][1][1] = i + 1
+                else:
+                    ports[-1][1][1] = final_port_end_index if final_port_end_index != -1 else i + 1
 
-        # 不考虑最后刚刚到港情况
-
+            # 不考虑最后刚刚到港情况
+        except:
+            traceback.print_exc()
+            print('错误，第一个下标：', df.index[0])
         return ports
 
     def insert_start_end_port(self, df):
@@ -189,11 +219,11 @@ class FindPorts(object):
                 
                 port_df = train_data.loc[start_index: end_index]
                 
-                port_df_speed_not_0 = port_df[port_df['speed'] <= 1]
+                port_df_speed_is_0 = port_df[port_df['speed'] == 0]
                 
+                if len(port_df_speed_is_0) != 0:
+                    value_.append([port_name, [port_df_speed_is_0.index[0], port_df_speed_is_0.index[-1]]])
                 
-                if len(port_df_speed_not_0) != 0:
-                    value_.append([port_name, [port_df_speed_not_0.index[0], port_df_speed_not_0.index[-1]]])
             
             orders_ports_dict_[key] = value_  
               
@@ -230,7 +260,7 @@ class FindPorts(object):
 findPorts = FindPorts()
 
 if __name__ == '__main__':
-    train_data = pd.read_csv(config.train_data_drift_dup)
+    train_data = pd.read_csv(config.train_data_dup_direc_drift)
 
     # progress_bar=True
     pandarallel.initialize(nb_workers=config.nb_workers)
@@ -238,5 +268,5 @@ if __name__ == '__main__':
     
     orders_ports_dict = findPorts.find_ports(train_data, distance_threshold=25, speed_threshold=2)
     
-    with open(config.tool_file_dir_path + 'orders_ports_dict_0714.txt', 'w') as f:
+    with open(config.tool_file_dir_path + 'orders_ports_dict_0805.txt', 'w') as f:
         f.write(str(orders_ports_dict))
