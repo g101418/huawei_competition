@@ -1,5 +1,7 @@
 from config import config
+from utils import portsUtils
 from find_all_ports_on_trace import findPorts
+from pandarallel import pandarallel
 
 import pandas as pd
 
