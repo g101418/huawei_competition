@@ -96,14 +96,24 @@ class CutTrace(object):
                     if end_first > 0 and start_second > 0 and start_second >= end_first:
                         break
                     
-                    if start_second > 0 and end_first > 0:
-                        start_index, end_index = start_second, end_first
-                    elif start_second > 0 and end_second > 0:
-                        start_index, end_index = start_second, end_second
-                    elif start_first > 0 and end_first > 0:
-                        start_index, end_index = start_first, end_first
-                    elif start_first > 0 and end_second > 0:
-                        start_index, end_index = start_first, end_second
+                    if match_start_end_port:
+                        if start_first > 0 and end_first > 0:
+                            start_index, end_index = start_first, end_first
+                        elif start_first > 0 and end_second > 0:
+                            start_index, end_index = start_first, end_second
+                        elif start_second > 0 and end_first > 0:
+                            start_index, end_index = start_second, end_first
+                        elif start_second > 0 and end_second > 0:
+                            start_index, end_index = start_second, end_second
+                    else:
+                        if start_second > 0 and end_first > 0:
+                            start_index, end_index = start_second, end_first
+                        elif start_second > 0 and end_second > 0:
+                            start_index, end_index = start_second, end_second
+                        elif start_first > 0 and end_first > 0:
+                            start_index, end_index = start_first, end_first
+                        elif start_first > 0 and end_second > 0:
+                            start_index, end_index = start_first, end_second
                         
 
                     # start_index, end_index = start_first, end_second
