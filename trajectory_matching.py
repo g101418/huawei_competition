@@ -280,7 +280,7 @@ class TrajectoryMatching(object):
             if self.__after_cut_mean_num > 0 and is_after_cut:
                 mean_label_num = self.__after_cut_mean_num
                 
-            mean_label_num = min(mean_label_num, int(len(cdist) * self.__max_mean_label_ratio))
+            mean_label_num = min(mean_label_num, int(len(cdist) * self.__max_mean_label_ratio + 1))
             
             min_traj_index_3 = list(map(lambda x:cdist.index(x), 
                 heapq.nsmallest(min(len(train_label_list), mean_label_num), cdist)))
