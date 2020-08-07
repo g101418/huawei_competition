@@ -37,6 +37,7 @@ class TrajectoryMatching(object):
                  use_near=True,
                  match_start_end_port=False,
                  mean_label_num=1,
+                 max_mean_label_ratio=0.2,
                  top_N_for_parallel=10,
                  cut_level=1000,
                  matching_down=True,
@@ -70,6 +71,7 @@ class TrajectoryMatching(object):
         self.__matching_down = matching_down
         self.__use_near = use_near
         self.__match_start_end_port = match_start_end_port
+        self.__max_mean_label_ratio = max_mean_label_ratio
         
         self.__get_label_way = get_label_way if get_label_way in ['mean', 'min', 'median'] else 'mean'
         self.__vessel_name = vessel_name if vessel_name in ['carrierName', 'vesselMMSI'] else ''
@@ -277,6 +279,8 @@ class TrajectoryMatching(object):
             
             if self.__after_cut_mean_num > 0 and is_after_cut:
                 mean_label_num = self.__after_cut_mean_num
+                
+            mean_label_num = min(mean_label_num, int(len(cdist) * self.__max_mean_label_ratio))
             
             min_traj_index_3 = list(map(lambda x:cdist.index(x), 
                 heapq.nsmallest(min(len(train_label_list), mean_label_num), cdist)))
@@ -541,6 +545,7 @@ if __name__ == "__main__":
         'use_near': True,
         'match_start_end_port': False,
         'mean_label_num': 15, 
+        'max_mean_label_ratio': 0.2,
         'top_N_for_parallel': 55,
         'cut_level': 2,
         'matching_down': True,
