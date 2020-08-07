@@ -195,6 +195,20 @@ class FindPorts(object):
     
     def delete_not_0_speed(self, train_data=None):
         
+        def cut_segments(speed_list):
+            segments = []
+
+            first_value = speed_list[0]
+            segments.append([first_value])
+            for value in speed_list[1:]:
+                if value == first_value + 1:
+                    segments[-1].append(value)
+                else:
+                    segments.append([value])
+
+                first_value = value
+            return segments
+        
         if train_data is None:
             train_data = self.train_data
         
@@ -221,8 +235,41 @@ class FindPorts(object):
                 
                 port_df_speed_is_0 = port_df[port_df['speed'] == 0]
                 
-                if len(port_df_speed_is_0) != 0:
-                    value_.append([port_name, [port_df_speed_is_0.index[0], port_df_speed_is_0.index[-1]]])
+                if len(port_df_speed_is_0) == 0:
+                    continue
+                
+                # 找到最靠近港口的一串0
+                speed_list = port_df_speed_is_0.index.tolist()
+                
+                segments = cut_segments(speed_list)
+                
+                mean_distance_to_port = []
+                for i, segment in enumerate(segments):
+                    mean_distance = 0
+                    num = 0
+                    for index in segment:
+                        lon = port_df.loc[index]['longitude']
+                        lat = port_df.loc[index]['latitude']
+                        
+                        distance = portsUtils.get_port(lon, lat, distance_threshold=self.distance_threshold)[2]
+                        
+                        if distance < 0:
+                            print('距离为-1', index)
+                            continue
+                        mean_distance += distance
+                        num += 1
+                    if num:
+                        mean_distance /= num
+                    else:
+                        mean_distance = 9999999
+                    mean_distance_to_port.append((mean_distance, i))
+                    
+                mean_distance_to_port.sort(key=lambda x:x[0])
+                indexs = segments[mean_distance_to_port[0][1]]
+                
+                
+                if mean_distance_to_port[0][0] < self.distance_threshold:
+                    value_.append([port_name, [indexs[0], indexs[-1]]])
                 
             
             orders_ports_dict_[key] = value_  
