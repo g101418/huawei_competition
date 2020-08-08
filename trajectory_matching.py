@@ -288,6 +288,10 @@ class TrajectoryMatching(object):
             temp_list = list(map(lambda x: x.total_seconds(), 
                           list(np.array(train_label_list)[min_traj_index_3])))
             if self.__get_label_way == 'mean':
+                if len(temp_list) > 3:
+                    temp_list.sort()
+                    temp_list = temp_list[1: -1]
+                
                 mean_label_seconds = np.mean(temp_list)
             elif self.__get_label_way == 'min':
                 mean_label_seconds = np.min(temp_list)
