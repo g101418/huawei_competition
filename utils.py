@@ -4,6 +4,7 @@ import heapq
 import time
 import functools
 import yagmail
+import random
 
 from config import config
 
@@ -330,8 +331,10 @@ class PortsUtils(object):
                     if length in max_lengths:
                         remain_order.append(order)
                 
+                random.shuffle(remain_order)
                 return remain_order[:cut_num], is_single_level
             else:
+                random.shuffle(result)
                 result_ = result[:cut_num]
                 result_ = [item[0] for item in result_]
                 return result_, None
