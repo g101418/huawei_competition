@@ -468,12 +468,14 @@ class TrajectoryMatching(object):
                 return [[order, None, None]]
             
             
-        max_length = max(length_list)
-        top_N_length_index = [i for i,x in enumerate(length_list) if x == max_length ]
-        top_N_length_index = top_N_length_index[:min(len(top_N_length_index), self.__top_N_for_parallel)]
+        # max_length = max(length_list)
+        # top_N_length_index = [i for i,x in enumerate(length_list) if x == max_length ]
+        # top_N_length_index = top_N_length_index[:min(len(top_N_length_index), self.__top_N_for_parallel)]
 
-        matched_index_list = [k for k in matched_index_list_all if k not in top_N_length_index]
+        # matched_index_list = [k for k in matched_index_list_all if k not in top_N_length_index]
         
+        top_N_length_index = matched_index_list
+        matched_index_list = []
         
         matched_order_list, matched_trace_list, matched_traj_list = [], [], []
         for i in matched_index_list:
