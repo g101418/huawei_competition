@@ -474,7 +474,7 @@ class TrajectoryMatching(object):
 
         # matched_index_list = [k for k in matched_index_list_all if k not in top_N_length_index]
         
-        top_N_length_index = matched_index_list
+        top_N_length_index = matched_index_list_all
         matched_index_list = []
         
         matched_order_list, matched_trace_list, matched_traj_list = [], [], []
