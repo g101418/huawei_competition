@@ -566,6 +566,10 @@ if __name__ == "__main__":
     try:
         trajectoryMatching = TrajectoryMatching(train_data, **kwargs)
         
+        individual_processing = []
+        
+        if len(individual_processing):
+            test_data = test_data[test_data.loadingOrder.isin(individual_processing)].reset_index()
         final_order_label = trajectoryMatching.process(test_data)
         
         with open(config.txt_file_dir_path + 'final_order_label_'+dict_name+'.txt', 'w')as f:

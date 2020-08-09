@@ -83,7 +83,7 @@ class CutTrace(object):
                         i += 1
                         continue
                     end_first, end_second = self.orders_ports_dict[key][end_indexs[j]][1]
-                    if end_second < 0:
+                    if end_second < 0 or end_first < 0:
                         j -= 1
                         continue
                     
