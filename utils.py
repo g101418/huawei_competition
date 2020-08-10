@@ -3,6 +3,8 @@ import itertools
 import heapq
 import time
 import functools
+import yagmail
+import random
 
 from config import config
 
@@ -29,6 +31,30 @@ def haversine(lon1, lat1, lon2, lat2):
     d = c * r
     return d
 
+def get_port_start_end_index(start_indexs, end_indexs):
+    start_index, end_index = -1, -1
+    i, j = len(start_indexs) - 1, 0
+    change = True
+    while i >= 0 and j < len(end_indexs):
+        if not start_indexs[i] < end_indexs[j]:
+            if i - 1 >= 0 and j + 1 < len(end_indexs):
+                if change:
+                    i -= 1
+                else:
+                    j += 1
+                change = not change
+            elif i - 1 >= 0:
+                i -= 1
+            elif j + 1 < len(end_indexs):
+                j += 1
+            else:
+                break
+            continue
+        start_index, end_index = start_indexs[i], end_indexs[j]
+        break
+    
+    return start_index, end_index
+
 
 def timethis(func):
     @functools.wraps(func)
@@ -45,6 +71,37 @@ def timethis(func):
               str(int(period_time//3600))+'小时 '+str(int(period_time%3600)//60)+'分钟 '+str(int(period_time%60))+'秒 ')
         return result
     return wrapper
+
+def send_mail(password='XXXXXXXXXXX', subject=None, contents=None):
+    if password is None: print('缺少密码'); return;
+    if subject is None : print('缺少标题'); return;
+    if contents is None: print('缺少内容'); return;
+    
+    try:
+        yag=yagmail.SMTP(user='gao101418@163.com', password=password, host='smtp.163.com')
+        yag.send(to=['1014186239@qq.com'], subject=subject, contents=contents)
+    except:
+        traceback.print_exc()
+
+class IndexConversion(object):
+    def __init__(self, train_data, test_data=None):
+        self.__order_to_index_dict = {}
+        for order, df in train_data.groupby('loadingOrder'):
+            self.__order_to_index_dict[order] = df.index[0]
+        if test_data:
+            for order, df in test_data.groupby('loadingOrder'):
+                self.__order_to_index_dict[order] = df.index[0]
+
+    def index_conversion(self, order, index):
+        df_index_0 = self.__order_to_index_dict[order]
+
+        if index < df_index_0:
+            # 相对下标
+            return df_index_0 + index
+        else:
+            # 绝对下标
+            return index - df_index_0
+                
 
 class PortsUtils(object):
     """用于处理港口相关的数据
@@ -175,8 +232,8 @@ class PortsUtils(object):
                 return [k for k in row]
 
         return [port_name]
-    
-    def match_middle_port(self, trace):
+        
+    def match_middle_port(self, trace, use_near=True):
         trace = trace.split('-')
         trace = list(map(lambda x: portsUtils.get_alias_name(x), trace))
         
@@ -187,8 +244,11 @@ class PortsUtils(object):
         start_port_near_names = portsUtils.get_near_name(start_port)
         end_port_near_names = portsUtils.get_near_name(end_port)
         # 起止港的全部near港集
-        near_name_pairs = [(i,j) for i in start_port_near_names for j in end_port_near_names]
-        
+        if use_near:
+            near_name_pairs = [(i,j) for i in start_port_near_names for j in end_port_near_names]
+        else:
+            near_name_pairs = [(start_port, end_port)]
+            
         # TODO 此处利用set进行比较
         # 处理中间港的near问题
         middle_ports = trace[1:-1] if len(trace) > 2 else []
@@ -217,8 +277,11 @@ class PortsUtils(object):
                 if start_port not in ports or end_port not in ports:
                     continue
                 
-                start_index =  [index for index, value in enumerate(ports) if value == start_port][0]
-                end_index = [index for index, value in enumerate(ports) if value == end_port][-1]
+                # TODO 第一个出现港/最后一个
+                start_indexs =  [index for index, value in enumerate(ports) if value == start_port]
+                end_indexs = [index for index, value in enumerate(ports) if value == end_port]
+                
+                start_index, end_index = get_port_start_end_index(start_indexs, end_indexs)
                 
                 if start_index >= end_index:
                     continue
@@ -268,13 +331,90 @@ class PortsUtils(object):
                     if length in max_lengths:
                         remain_order.append(order)
                 
+                random.shuffle(remain_order)
                 return remain_order[:cut_num], is_single_level
             else:
+                random.shuffle(result)
                 result_ = result[:cut_num]
                 result_ = [item[0] for item in result_]
                 return result_, None
-            
+        # TODO 处理错误结果，-1
         return result, None
+    
+    def get_test_middle_port_num(self, test_trace):
+        trace = test_trace.split('-')
+        trace = list(map(lambda x: portsUtils.get_alias_name(x), trace))
+        
+        middle_ports = trace[1:-1] if len(trace) > 2 else []
+        
+        return len(set(middle_ports))
+    
+    def test_match_middle_port_num(self, test_trace, train_order, use_near=True):
+        trace = test_trace.split('-')
+        trace = list(map(lambda x: portsUtils.get_alias_name(x), trace))
+        
+        start_port = trace[0]
+        end_port = trace[-1]
+        
+        # 处理起止点的near港问题
+        start_port_near_names = portsUtils.get_near_name(start_port)
+        end_port_near_names = portsUtils.get_near_name(end_port)
+        # 起止港的全部near港集
+        if use_near:
+            near_name_pairs = [(i,j) for i in start_port_near_names for j in end_port_near_names]
+        else:
+            near_name_pairs = [(start_port, end_port)]
+        
+        middle_ports = trace[1:-1] if len(trace) > 2 else []
+        if len(middle_ports) != 0:
+            middle_port_set = set(middle_ports)
+            
+            middle_port_near = [portsUtils.get_near_name(port) for port in middle_port_set]
+            
+            middle_port_sets = map(lambda x: frozenset(x), itertools.product(*middle_port_near))
+            middle_port_sets = set(middle_port_sets)
+        else:
+            middle_port_sets = set()
+            
+        ports = self.__orders_ports_name_dict[train_order]
+        
+        if len(ports) < 2:
+            return -1
+        
+        match_middle_port_len_for_near = []
+        for start_port, end_port in near_name_pairs:
+            # 用于找到near的最高匹配值
+            if start_port not in ports or end_port not in ports:
+                continue
+            
+            # TODO 第一个出现港/最后一个
+            start_indexs =  [index for index, value in enumerate(ports) if value == start_port]
+            end_indexs = [index for index, value in enumerate(ports) if value == end_port]
+            
+            start_index, end_index = get_port_start_end_index(start_indexs, end_indexs)
+            
+            if start_index >= end_index:
+                return -1
+            
+            ports_set = set(ports[start_index: end_index+1]) - {start_port, end_port}
+            
+            if len(middle_port_sets) != 0:
+                temp_middle_ports_length = []
+                for middle_ports in middle_port_sets:
+                    match_middle_port_len = len(middle_ports & ports_set)
+                    temp_middle_ports_length.append(match_middle_port_len)
+                
+                match_middle_port_len = max(temp_middle_ports_length)
+            else:
+                match_middle_port_len = 0
+                
+            match_middle_port_len_for_near.append(match_middle_port_len)
+        
+        if len(match_middle_port_len_for_near) == 0:
+            return -1
+        
+        return max(match_middle_port_len_for_near)
+        
 
     def merge_port(self, port_name_1, port_name_2):
         """用来删除/合并两个港口(名称)
@@ -311,6 +451,67 @@ class PortsUtils(object):
         # TODO
         return
 
+class DataAnalyseUtils(object):
+
+    # 包含各种用于分析处理数据的工具
+    # def __init__(self):
+
+
+    # 用于获取去重后还剩余的运单号
+    def get_drop_duplicated_order_list(self, train_data):
+        temp_train_data = train_data.drop_duplicates(subset=['vesselMMSI', 'timestamp'], keep='first', inplace=False)
+        temp_train_data_order_list = temp_train_data.loadingOrder.unique().tolist()
+        return temp_train_data_order_list
+
+    # 根据剩余的运单号从原文件截取出新的数据集
+    @timethis
+    def get_drop_duplicated_data(self, train_data):
+        temp_train_data_order_list = self.get_drop_duplicated_order_list(train_data)
+        new_train_data = train_data.loc[train_data['loadingOrder'].isin(temp_train_data_order_list)]
+        new_train_data.sort_values(['loadingOrder', 'timestamp'], inplace=True)
+        new_train_data = new_train_data.reset_index(drop=True)
+        
+        return new_train_data
+
+    # 删除direction异常
+    @timethis
+    def delete_direction_error_row(self, train_data):
+        train_data_ = train_data[(train_data['direction']>=0)&(train_data['direction']<=36000)].reset_index(drop=True)
+        return train_data_
+    
+    # 删除换船数据
+    @timethis
+    def delete_change_mmsi_row(self, train_data):
+        def get_delete_row_indexs(x):
+            mssi = x.vesselMMSI.unique().tolist()
+            if len(mssi) > 1:
+                mssi_lengths = []
+                
+                for ms in mssi:
+                    ms_df = x[x['vesselMMSI']==ms]
+                    mssi_lengths.append([ms, len(ms_df)])
+                
+                mssi_lengths.sort(key=lambda x:x[1], reverse=True)
+                
+                max_mssi = mssi_lengths[0][0]
+                
+                ms_df_not_index_list = x[x['vesselMMSI']!=max_mssi].index.tolist()
+                
+                return ms_df_not_index_list
+            
+            return []
+            
+        delete_row_indexs = train_data_.groupby('loadingOrder').parallel_apply(lambda x: get_delete_row_indexs(x))
+
+        delete_indexs=delete_row_indexs.tolist()
+        delete_indexs=[j for i in delete_indexs for j in i]
+
+        train_data_ = train_data_.drop(labels=delete_indexs, axis=0)
+        train_data_ = train_data_.sort_values(['loadingOrder', 'timestamp'])
+        train_data_ = train_data_.reset_index(drop=True)
+        
+        return train_data_
+
 
 class DrawMap(object):
     """用于绘制图案
@@ -345,8 +546,15 @@ class DrawMap(object):
 
         if for_train:
             df = self.__train_data
-        else:
+        elif for_test:
             df = self.__test_data
+        else:
+            if any(self.__test_data['loadingOrder'].isin([ordername])):
+                df = self.__test_data
+                for_test = True
+            else:
+                df = self.__train_data
+                for_train = True
 
         temp = df.loc[df['loadingOrder'] == ordername]
         if len(temp) == 0:
@@ -454,6 +662,7 @@ class DrawMap(object):
 
 
 portsUtils = PortsUtils()
+dataAnalyseUtils = DataAnalyseUtils()
 
 if __name__ == '__main__':
     print("该两点间距离={0:0.3f} km".format(

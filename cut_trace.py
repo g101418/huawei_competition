@@ -41,7 +41,7 @@ class CutTrace(object):
                 self.__orders_ports_name_dict[key] = [
                     k[0] for k in self.orders_ports_dict[key]]  # 港口名list
 
-    def get_use_indexs(self, start_port, end_port, line=True):
+    def get_use_indexs(self, start_port, end_port, match_start_end_port=False, line=True):
         """获取与start_port、end_port相关的轨迹的所有下标
         start_port优先匹配最靠前港，end_port优先匹配最靠后港
 
@@ -62,6 +62,10 @@ class CutTrace(object):
             if len(self.__orders_ports_name_dict[key]) < 2:
                 continue
             if start_port in self.__orders_ports_name_dict[key] and end_port in self.__orders_ports_name_dict[key]:
+                if match_start_end_port:
+                    if (start_port != self.__orders_ports_name_dict[key][0] or 
+                        end_port != self.__orders_ports_name_dict[key][-1]):
+                        continue
                 # 起止港均在内
                 start_indexs = [i for i in range(len(
                     self.__orders_ports_name_dict[key])) if self.__orders_ports_name_dict[key][i] == start_port]
@@ -78,8 +82,8 @@ class CutTrace(object):
                     if start_first < 0:
                         i += 1
                         continue
-                    end_first, end_second = self.orders_ports_dict[key][end_indexs[i]][1]
-                    if end_second < 0:
+                    end_first, end_second = self.orders_ports_dict[key][end_indexs[j]][1]
+                    if end_second < 0 or end_first < 0:
                         j -= 1
                         continue
                     
@@ -92,14 +96,24 @@ class CutTrace(object):
                     if end_first > 0 and start_second > 0 and start_second >= end_first:
                         break
                     
-                    if start_second > 0 and end_first > 0:
-                        start_index, end_index = start_second, end_first
-                    elif start_second > 0 and end_second > 0:
-                        start_index, end_index = start_second, end_second
-                    elif start_first > 0 and end_first > 0:
-                        start_index, end_index = start_first, end_first
-                    elif start_first > 0 and end_second > 0:
-                        start_index, end_index = start_first, end_second
+                    if match_start_end_port:
+                        if start_first > 0 and end_first > 0:
+                            start_index, end_index = start_first, end_first
+                        elif start_first > 0 and end_second > 0:
+                            start_index, end_index = start_first, end_second
+                        elif start_second > 0 and end_first > 0:
+                            start_index, end_index = start_second, end_first
+                        elif start_second > 0 and end_second > 0:
+                            start_index, end_index = start_second, end_second
+                    else:
+                        if start_second > 0 and end_first > 0:
+                            start_index, end_index = start_second, end_first
+                        elif start_second > 0 and end_second > 0:
+                            start_index, end_index = start_second, end_second
+                        elif start_first > 0 and end_first > 0:
+                            start_index, end_index = start_first, end_first
+                        elif start_first > 0 and end_second > 0:
+                            start_index, end_index = start_first, end_second
                         
 
                     # start_index, end_index = start_first, end_second
@@ -295,7 +309,11 @@ class CutTrace(object):
                     return [use_df_label]
                 else:
                     return [pd.DataFrame(columns=df.columns)]
-            
+        
+        if len(match_df) == 0:
+            print('match_df为空')
+            return pd.DataFrame(columns=match_df.columns)
+        
         if for_parallel == False:
             use_df = match_df.groupby('loadingOrder').apply(
                 lambda x:while_for_cut_multi(x)).tolist()
@@ -303,9 +321,10 @@ class CutTrace(object):
             use_df = match_df.groupby('loadingOrder').parallel_apply(
                 lambda x:while_for_cut_multi(x)).tolist()
         
+        use_df = list(map(lambda x: x[0], use_df))
+        
         use_df_ = pd.DataFrame()
-        for item in use_df:
-            use_df_ = use_df_.append(item[0], ignore_index=True)
+        use_df_ = use_df_.append(use_df, ignore_index=True)
         
         use_df_ = use_df_.reset_index(drop=True)
 

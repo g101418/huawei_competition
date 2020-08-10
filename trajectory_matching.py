@@ -6,7 +6,7 @@
 @FilePath: /HUAWEI_competition/trajectory_matching.py
 '''
 from cut_trace import CutTrace
-from utils import portsUtils
+from utils import portsUtils, send_mail
 from config import config
 
 import numpy as np
@@ -20,9 +20,6 @@ import heapq
 import traceback
 
 from pandarallel import pandarallel
-import yagmail
-
-
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -37,9 +34,12 @@ class TrajectoryMatching(object):
                  geohash_precision=4, 
                  metric="sspd",
                  cut_distance_threshold=1.3,
+                 use_near=True,
+                 match_start_end_port=False,
                  mean_label_num=1,
+                 max_mean_label_ratio=0.2,
                  top_N_for_parallel=10,
-                 cut_level=1,
+                 cut_level=1000,
                  matching_down=True,
                  cut_num=400,
                  after_cut_mean_num=-1,
@@ -69,18 +69,22 @@ class TrajectoryMatching(object):
         self.__cut_num = cut_num
         self.__after_cut_mean_num = after_cut_mean_num
         self.__matching_down = matching_down
+        self.__use_near = use_near
+        self.__match_start_end_port = match_start_end_port
+        self.__max_mean_label_ratio = max_mean_label_ratio
         
         self.__get_label_way = get_label_way if get_label_way in ['mean', 'min', 'median'] else 'mean'
         self.__vessel_name = vessel_name if vessel_name in ['carrierName', 'vesselMMSI'] else ''
         
 
-    def __get_match_df(self, start_port, end_port, reset_index=True):
+    def __get_match_df(self, start_port, end_port, reset_index=True, use_near=True, match_start_end_port=False):
         """得到与trace相关的训练集，训练集可选是否排序
         如果没有相关df，则返回None
         Args:
             start_port (str): 起始港
             end_port (str): 终点港
             reset_index (Bool): 选择是否返回index重排的df，默认重排序
+            use_near (Bool): 选择是否使用附近港
 
         Returns:
             match_df (pd.DataFrame): 与trace相关的训练集，可选择是否排序
@@ -94,11 +98,14 @@ class TrajectoryMatching(object):
             start_port_near_names = portsUtils.get_near_name(start_port)
             end_port_near_names = portsUtils.get_near_name(end_port)
             
-            near_name_pairs = [(i,j) for i in start_port_near_names for j in end_port_near_names]
-            
+            if use_near:
+                near_name_pairs = [(i,j) for i in start_port_near_names for j in end_port_near_names]
+            else:
+                near_name_pairs = [(start_port, end_port)]
+                
             results = []
             for item in near_name_pairs:
-                result = self.__cutTrace.get_use_indexs(item[0], item[1])
+                result = self.__cutTrace.get_use_indexs(item[0], item[1], match_start_end_port=match_start_end_port)
                 results += result
             results = list(set(results))
             results.sort()
@@ -218,7 +225,7 @@ class TrajectoryMatching(object):
 
         return order_list, trace_list, traj_list
         
-    def get_related_df_len(self, start_port, end_port):
+    def get_related_df_len(self, start_port, end_port, use_near=True, match_start_end_port=False):
         """得到trace相关df中订单的数量
 
         Args:
@@ -229,7 +236,7 @@ class TrajectoryMatching(object):
             [int]: 相关df中订单的数量
         """
         
-        result = self.get_related_df(start_port, end_port)
+        result = self.get_related_df(start_port, end_port, use_near=use_near, match_start_end_port=match_start_end_port)
         if result is None:
             return 0
         return result.loadingOrder.nunique()
@@ -248,12 +255,15 @@ class TrajectoryMatching(object):
             order, label (str, pd.Timedelta) :订单名称、时间差
         """
         try:
-            (train_order_list, train_label_list, train_traj_list), is_after_cut = self.modify_traj_label(test_data, for_parallel=for_parallel)
+            result, is_after_cut = self.modify_traj_label(test_data, for_parallel=for_parallel)
+            train_order_list, train_label_list, train_traj_list = result
             if train_label_list is None or len(train_label_list) == 0:
+                print('get_final_label，切割后为空', order)
                 return None, None
         except:
             traceback.print_exc()
             print('error:', order, 'modify_traj_label')
+            return None, None
             
         try:
             cdist = list(tdist.cdist(
@@ -269,6 +279,8 @@ class TrajectoryMatching(object):
             
             if self.__after_cut_mean_num > 0 and is_after_cut:
                 mean_label_num = self.__after_cut_mean_num
+                
+            mean_label_num = min(mean_label_num, int(len(cdist) * self.__max_mean_label_ratio + 1))
             
             min_traj_index_3 = list(map(lambda x:cdist.index(x), 
                 heapq.nsmallest(min(len(train_label_list), mean_label_num), cdist)))
@@ -276,6 +288,10 @@ class TrajectoryMatching(object):
             temp_list = list(map(lambda x: x.total_seconds(), 
                           list(np.array(train_label_list)[min_traj_index_3])))
             if self.__get_label_way == 'mean':
+                if len(temp_list) > 3:
+                    temp_list.sort()
+                    temp_list = temp_list[1: -1]
+                
                 mean_label_seconds = np.mean(temp_list)
             elif self.__get_label_way == 'min':
                 mean_label_seconds = np.min(temp_list)
@@ -308,13 +324,14 @@ class TrajectoryMatching(object):
         result_order, result_label = self.get_final_label(order, trace, traj, test_data_, for_parallel=for_parallel)
         return [order, result_order, result_label]
 
-    def get_related_df(self, start_port, end_port):
+    def get_related_df(self, start_port, end_port, use_near=True, match_start_end_port=False):
         """引入字典，根据trace得到相关DataFrame
         输入参数应该已经通过map映射，即使用get_test_trace()函数得到的数据。
         如果没有相关df，则返回None
         Args:
             start_port (str): 起始港名称
             end_port (str): 终止港名称
+            use_near (Bool): 选择是否使用附近港
 
         Returns:
             (pd.DataFrame): 根据起止港路由得到的匹配df(match_df)
@@ -326,7 +343,7 @@ class TrajectoryMatching(object):
             return self.match_df_dict[trace_str]
         else:
             match_df = self.__get_match_df(
-                start_port, end_port, reset_index=True)
+                start_port, end_port, reset_index=True, use_near=use_near, match_start_end_port=match_start_end_port)
 
             if match_df is not None:
                 self.match_df_dict[trace_str] = match_df.copy()
@@ -357,16 +374,28 @@ class TrajectoryMatching(object):
         trace_str = strat_port+'-'+end_port
         
         if trace_str not in self.match_df_dict:
+            print('modify_traj_label，trace_str不在字典内', order)
             return [None, None, None], None
         
         match_df = self.match_df_dict[trace_str]
         
         if len(match_df) == 0:
+            print('modify_traj_label，match_df为空', order)
             return [None, None, None], None
         
-        port_match_orders, is_single_level = portsUtils.get_max_match_ports(trace_, cut_level=self.__cut_level, cut_num=self.__cut_num, matching_down=self.__matching_down)
-        match_df = match_df[match_df['loadingOrder'].isin(port_match_orders)].reset_index(drop=True)
-
+        for i in range(10):
+            port_match_orders, is_single_level = portsUtils.get_max_match_ports(trace_, cut_level=self.__cut_level+i, cut_num=self.__cut_num, matching_down=self.__matching_down)
+            match_df_temp = match_df[match_df['loadingOrder'].isin(port_match_orders)].reset_index(drop=True)
+            
+            if len(match_df_temp) != 0:
+                break
+            
+        if len(match_df_temp) == 0:
+            print('modify_traj_label，match_df_temp为空', order)
+            return [None, None, None], None
+        
+        match_df = match_df_temp
+        
         try:
             if len(self.__vessel_name) > 0:
                 match_df_ = match_df[match_df[self.__vessel_name]==test_data[self.__vessel_name].unique().tolist()[0]]
@@ -384,13 +413,15 @@ class TrajectoryMatching(object):
             else:
                 cutted_df = self.__cutTrace.cut_trace_for_test(
                     df, match_df, self.cut_distance_threshold, for_parallel=for_parallel)
+            
+            if len(cutted_df) == 0:
+                print('modify_traj_label，cutted_df为空', order)
+                return [None, None, None], None
         except:
             traceback.print_exc()
             print('船号匹配处错误，test_order:',order)
-            
-        
-        if len(cutted_df) == 0:
             return [None, None, None], None
+            
         
         traj_list_label_series = cutted_df.groupby('loadingOrder')[[
             'timestamp', 'longitude', 'latitude']].apply(lambda x: self.__get_traj_list_label(x, for_traj=False))
@@ -415,29 +446,36 @@ class TrajectoryMatching(object):
         length_list = []
         if order is None:
             for i in range(len(order_list)):
-                length = self.get_related_df_len(
-                    trace_list[i][0], trace_list[i][1])
+                length = self.get_related_df_len(trace_list[i][0], trace_list[i][1], use_near=self.__use_near, match_start_end_port=self.__match_start_end_port)
+                if not self.__use_near and length == 0:
+                    length = self.get_related_df_len(trace_list[i][0], trace_list[i][1], use_near=True, match_start_end_port=self.__match_start_end_port)
+                    
                 length_list.append(length)
                 if length != 0:
                     matched_index_list_all.append(i)
         else:
             order_index = order_list.index(order)
-            length = self.get_related_df_len(trace_list[order_index][0], trace_list[order_index][1])
+            length = self.get_related_df_len(trace_list[order_index][0], trace_list[order_index][1], use_near=self.__use_near, match_start_end_port=self.__match_start_end_port)
+            if not self.__use_near and length == 0:
+                length = self.get_related_df_len(trace_list[order_index][0], trace_list[order_index][1], use_near=True, match_start_end_port=self.__match_start_end_port)
+                    
             length_list = [-1] * order_index
             length_list.append(length)
             if length != 0:
                 matched_index_list_all.append(order_index)
             else:
-                print('匹配轨迹长度为0')
+                print('process，匹配轨迹长度为0', order)
                 return [[order, None, None]]
             
             
-        max_length = max(length_list)
-        top_N_length_index = [i for i,x in enumerate(length_list) if x == max_length ]
-        top_N_length_index = top_N_length_index[:min(len(top_N_length_index), self.__top_N_for_parallel)]
+        # max_length = max(length_list)
+        # top_N_length_index = [i for i,x in enumerate(length_list) if x == max_length ]
+        # top_N_length_index = top_N_length_index[:min(len(top_N_length_index), self.__top_N_for_parallel)]
 
-        matched_index_list = [k for k in matched_index_list_all if k not in top_N_length_index]
+        # matched_index_list = [k for k in matched_index_list_all if k not in top_N_length_index]
         
+        top_N_length_index = matched_index_list_all
+        matched_index_list = []
         
         matched_order_list, matched_trace_list, matched_traj_list = [], [], []
         for i in matched_index_list:
@@ -488,6 +526,7 @@ class TrajectoryMatching(object):
         final_order_label += top_N_final_order_label
         if order is None:
             for order in unmatched_order_list:
+                print('related_df为空', order)
                 final_order_label.append([order, None, None])
         
         print('全部处理完毕')
@@ -496,7 +535,7 @@ class TrajectoryMatching(object):
         return final_order_label
 
 if __name__ == "__main__":
-    train_data_path = config.train_data_drift_dup
+    train_data_path = config.train_data_dup_direc_drift
     test_data_path = config.test_data_drift
     
     train_data = pd.read_csv(train_data_path)
@@ -504,19 +543,21 @@ if __name__ == "__main__":
 
     pandarallel.initialize(nb_workers=config.nb_workers)
 
-    dict_name = '0721'
-    password = 'XXXXXXXXX'
+    dict_name = '0805'
     kwargs = {
         'geohash_precision': 5, 
         'cut_distance_threshold': 1.3, 
         'metric': 'sspd', 
-        'mean_label_num': 40, 
-        'top_N_for_parallel': 20,
+        'use_near': True,
+        'match_start_end_port': False,
+        'mean_label_num': 15, 
+        'max_mean_label_ratio': 0.2,
+        'top_N_for_parallel': 55,
         'cut_level': 2,
         'matching_down': True,
-        'cut_num': 400,
-        'after_cut_mean_num': 2,
-        'get_label_way': 'min',
+        'cut_num': 1500,
+        'after_cut_mean_num': 3,
+        'get_label_way': 'mean',
         'vessel_name': '__'
         }
     contents = [key+'='+str(value) for key,value in kwargs.items()]
@@ -527,6 +568,10 @@ if __name__ == "__main__":
     try:
         trajectoryMatching = TrajectoryMatching(train_data, **kwargs)
         
+        individual_processing = []
+        
+        if len(individual_processing):
+            test_data = test_data[test_data.loadingOrder.isin(individual_processing)].reset_index()
         final_order_label = trajectoryMatching.process(test_data)
         
         with open(config.txt_file_dir_path + 'final_order_label_'+dict_name+'.txt', 'w')as f:
@@ -540,14 +585,10 @@ if __name__ == "__main__":
             f.write(str(final_order_label_dict))
             
     except:
-        yag=yagmail.SMTP(user='gao101418@163.com', password=password, host='smtp.163.com')
-        yag.send(to=['1014186239@qq.com'], subject='traj_match '+dict_name+' 出错', contents=contents)
+        send_mail(subject='traj_match '+dict_name+' 出错', contents=contents)
         traceback.print_exc()
     else:
-        yag=yagmail.SMTP(user='gao101418@163.com', password=password, host='smtp.163.com')
-        yag.send(to=['1014186239@qq.com'], subject='traj_match '+dict_name+' 运行完毕', contents=contents)
-    # yag=yagmail.SMTP(user='gao101418@163.com', password='XXXXXXXXXXX', host='smtp.163.com')
-    # yag.send(to=['1014186239@qq.com'], subject='traj_match 运行完毕', contents=['程序运行完毕'])
+        send_mail(subject='traj_match '+dict_name+' 运行完毕', contents=contents)
     
 # TODO 别名处理
 # TODO 无用代码删除
