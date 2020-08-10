@@ -288,6 +288,10 @@ class TrajectoryMatching(object):
             temp_list = list(map(lambda x: x.total_seconds(), 
                           list(np.array(train_label_list)[min_traj_index_3])))
             if self.__get_label_way == 'mean':
+                if len(temp_list) > 3:
+                    temp_list.sort()
+                    temp_list = temp_list[1: -1]
+                
                 mean_label_seconds = np.mean(temp_list)
             elif self.__get_label_way == 'min':
                 mean_label_seconds = np.min(temp_list)
@@ -464,12 +468,14 @@ class TrajectoryMatching(object):
                 return [[order, None, None]]
             
             
-        max_length = max(length_list)
-        top_N_length_index = [i for i,x in enumerate(length_list) if x == max_length ]
-        top_N_length_index = top_N_length_index[:min(len(top_N_length_index), self.__top_N_for_parallel)]
+        # max_length = max(length_list)
+        # top_N_length_index = [i for i,x in enumerate(length_list) if x == max_length ]
+        # top_N_length_index = top_N_length_index[:min(len(top_N_length_index), self.__top_N_for_parallel)]
 
-        matched_index_list = [k for k in matched_index_list_all if k not in top_N_length_index]
+        # matched_index_list = [k for k in matched_index_list_all if k not in top_N_length_index]
         
+        top_N_length_index = matched_index_list_all
+        matched_index_list = []
         
         matched_order_list, matched_trace_list, matched_traj_list = [], [], []
         for i in matched_index_list:
@@ -562,6 +568,10 @@ if __name__ == "__main__":
     try:
         trajectoryMatching = TrajectoryMatching(train_data, **kwargs)
         
+        individual_processing = []
+        
+        if len(individual_processing):
+            test_data = test_data[test_data.loadingOrder.isin(individual_processing)].reset_index()
         final_order_label = trajectoryMatching.process(test_data)
         
         with open(config.txt_file_dir_path + 'final_order_label_'+dict_name+'.txt', 'w')as f:

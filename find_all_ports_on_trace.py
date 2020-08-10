@@ -193,41 +193,84 @@ class FindPorts(object):
                     self.orders_ports_dict[key].append(
                         self.start_end_ports_dict[key][0])
     
-    def delete_not_0_speed(self, train_data=None):
+    def delete_not_0_speed(self, train_order, train_data=None):
+        
+        def cut_segments(speed_list):
+            segments = []
+
+            first_value = speed_list[0]
+            segments.append([first_value])
+            for value in speed_list[1:]:
+                if value == first_value + 1:
+                    segments[-1].append(value)
+                else:
+                    segments.append([value])
+
+                first_value = value
+            return segments
         
         if train_data is None:
             train_data = self.train_data
         
-        orders_ports_dict_ = dict()
+        key = train_order
+        value = self.orders_ports_dict[key]
+        ports = [item[0] for item in value]
         
-        for key, value in self.orders_ports_dict.items():
-            ports = [item[0] for item in value]
+        if len(value) == 0:
+            return []
             
-            if len(value) == 0:
-                orders_ports_dict_[key] = []
+        value_ = []
+        for port in value:
+            port_name = port[0]
+            start_index = port[1][0]
+            end_index = port[1][1]
+            
+            if start_index < 0 or end_index < 0:
+                value_.append([port_name, [start_index, end_index]])
                 continue
-                
-            value_ = []
-            for port in value:
-                port_name = port[0]
-                start_index = port[1][0]
-                end_index = port[1][1]
-                
-                if start_index < 0 or end_index < 0:
-                    value_.append([port_name, [start_index, end_index]])
-                    continue
-                
-                port_df = train_data.loc[start_index: end_index]
-                
-                port_df_speed_is_0 = port_df[port_df['speed'] == 0]
-                
-                if len(port_df_speed_is_0) != 0:
-                    value_.append([port_name, [port_df_speed_is_0.index[0], port_df_speed_is_0.index[-1]]])
-                
             
-            orders_ports_dict_[key] = value_  
+            port_df = train_data.loc[start_index: end_index]
+            
+            port_df_speed_is_0 = port_df[port_df['speed'] == 0]
+            
+            if len(port_df_speed_is_0) == 0:
+                continue
+            
+            # 找到最靠近港口的一串0
+            speed_list = port_df_speed_is_0.index.tolist()
+            
+            segments = cut_segments(speed_list)
+            
+            mean_distance_to_port = []
+            for i, segment in enumerate(segments):
+                mean_distance = 0
+                num = 0
+                for index in segment:
+                    lon = port_df.loc[index]['longitude']
+                    lat = port_df.loc[index]['latitude']
+                    
+                    distance = portsUtils.get_port(lon, lat, distance_threshold=self.distance_threshold)[2]
+                    
+                    if distance < 0:
+                        print('距离为-1', index)
+                        continue
+                    mean_distance += distance
+                    num += 1
+                if num:
+                    mean_distance /= num
+                else:
+                    mean_distance = 9999999
+                mean_distance_to_port.append((mean_distance, i))
+                
+            mean_distance_to_port.sort(key=lambda x:x[0])
+            indexs = segments[mean_distance_to_port[0][1]]
+            
+            
+            if mean_distance_to_port[0][0] < self.distance_threshold:
+                value_.append([port_name, [indexs[0], indexs[-1]]])
+            
+        return value_
               
-        self.orders_ports_dict = orders_ports_dict_
 
     @timethis
     def find_ports(self, train_data=None, ordername=None,
@@ -253,7 +296,10 @@ class FindPorts(object):
 
         self.integration_port()
         
-        self.delete_not_0_speed(train_data)
+        orders_ports_dict_ = train_data.groupby('loadingOrder').parallel_apply(
+            lambda x: self.delete_not_0_speed(x.iloc[0]['loadingOrder'], train_data))
+
+        self.orders_ports_dict = orders_ports_dict_.to_dict()
 
         return self.orders_ports_dict
     
